@@ -117,10 +117,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="width:100%;max-width:340px;">
       <div class="field-label">Venue code</div>
       <input class="field-input" id="f-code" type="text" maxlength="12" placeholder="e.g. SAPPHIRE" autocomplete="off"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); checkReady()"/>
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); checkReady()"
+        onchange="checkReady()" onkeyup="checkReady()"/>
       <div class="field-label">Your card number</div>
-      <input class="field-input num-input" id="f-card" type="number" min="1" max="140" placeholder="47"
-        oninput="checkReady()"/>
+      <input class="field-input num-input" id="f-card" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="47"
+        oninput="checkReady()" onchange="checkReady()" onkeyup="checkReady()"/>
       <button class="join-btn" id="join-btn" disabled onclick="joinGame()">Join game</button>
       <div class="error-msg" id="error-msg"></div>
       <p class="join-note">Your card number is printed in the footer of your physical card</p>
@@ -211,15 +212,29 @@ function show(id) {
 }
 
 function checkReady() {
-  const code = document.getElementById('f-code').value;
-  const num = parseInt(document.getElementById('f-card').value);
-  document.getElementById('join-btn').disabled = !(code.length >= 3 && num >= 1 && num <= 140);
+  const code = document.getElementById('f-code').value.trim();
+  const cardVal = document.getElementById('f-card').value.trim();
+  const num = parseInt(cardVal);
+  const valid = code.length >= 3 && cardVal.length > 0 && num >= 1 && num <= 140;
+  const btn = document.getElementById('join-btn');
+  btn.disabled = !valid;
+  btn.style.opacity = valid ? '1' : '0.35';
 }
+
+// Also run checkReady on page load and on focus events
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('f-code').addEventListener('focus', checkReady);
+  document.getElementById('f-card').addEventListener('focus', checkReady);
+  document.getElementById('f-code').addEventListener('blur', checkReady);
+  document.getElementById('f-card').addEventListener('blur', checkReady);
+});
 
 // ── Join game ─────────────────────────────────────────────────────────────────
 async function joinGame() {
-  venueCode = document.getElementById('f-code').value.toUpperCase();
-  cardNumber = parseInt(document.getElementById('f-card').value);
+  venueCode = document.getElementById('f-code').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  cardNumber = parseInt(document.getElementById('f-card').value.replace(/[^0-9]/g,''));
+  if (!venueCode || venueCode.length < 3) { document.getElementById('error-msg').textContent = 'Please enter a valid venue code.'; return; }
+  if (!cardNumber || cardNumber < 1 || cardNumber > 140) { document.getElementById('error-msg').textContent = 'Please enter a card number between 1 and 140.'; return; }
   document.getElementById('error-msg').textContent = '';
   show('s-connecting');
 
