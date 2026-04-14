@@ -213,21 +213,31 @@ function show(id) {
 
 // ── Join game ─────────────────────────────────────────────────────────────────
 async function joinGame() {
-  const codeRaw = document.getElementById('f-code').value || '';
-  const cardRaw = document.getElementById('f-card').value || '';
-  venueCode = codeRaw.toUpperCase().replace(/[^A-Z0-9]/g,'');
-  cardNumber = parseInt(cardRaw.replace(/[^0-9]/g,''));
+  const errEl = document.getElementById('error-msg');
+  try {
+    const codeRaw = document.getElementById('f-code').value || '';
+    const cardRaw = document.getElementById('f-card').value || '';
+    venueCode = codeRaw.toUpperCase().replace(/[^A-Z0-9]/g,'');
+    cardNumber = parseInt(cardRaw.replace(/[^0-9]/g,'')) || 0;
 
-  if (!venueCode || venueCode.length < 3) {
-    document.getElementById('error-msg').textContent = 'Please enter the venue code (at least 3 characters).';
-    return;
-  }
-  if (!cardNumber || cardNumber < 1 || cardNumber > 140) {
-    document.getElementById('error-msg').textContent = 'Please enter your card number (1 to 140).';
-    return;
-  }
-  document.getElementById('error-msg').textContent = '';
-  show('s-connecting');
+    errEl.style.color = '#888';
+    errEl.textContent = 'Code: ' + venueCode + '  Card: ' + cardNumber;
+
+    if (!venueCode || venueCode.length < 3) {
+      errEl.style.color = '#c0392b';
+      errEl.textContent = 'Please enter the venue code (at least 3 characters).';
+      return;
+    }
+    if (!cardNumber || cardNumber < 1 || cardNumber > 140) {
+      errEl.style.color = '#c0392b';
+      errEl.textContent = 'Please enter your card number (1 to 140).';
+      return;
+    }
+    errEl.style.color = '#888';
+    errEl.textContent = 'Connecting...';
+
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('s-connecting').classList.add('active');
 
   try {
     const res = await fetch('/api/join', {
