@@ -1,9 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const Database = require('better-sqlite3');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,107 +10,59 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── Database setup ───────────────────────────────────────────────────────────
+// ── Load all card data into memory at startup ─────────────────────────────────
 
-const db = new Database(path.join(__dirname, 'bingo.db'));
+const { themes, cards } = require('./seed');
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS themes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    slug TEXT NOT NULL UNIQUE
-  );
+// ── Active sessions ───────────────────────────────────────────────────────────
 
-  CREATE TABLE IF NOT EXISTS cards (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    theme_slug TEXT NOT NULL,
-    set_letter TEXT NOT NULL,
-    card_number INTEGER NOT NULL,
-    songs TEXT NOT NULL
-  );
+const activeSessions = {};
 
-  CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    theme_slug TEXT NOT NULL,
-    set_letter TEXT NOT NULL,
-    round INTEGER NOT NULL,
-    win_conditions TEXT NOT NULL,
-    songs_called TEXT NOT NULL DEFAULT '[]',
-    status TEXT NOT NULL DEFAULT 'registration',
-    created_at INTEGER NOT NULL
-  );
-`);
+// ── REST API ──────────────────────────────────────────────────────────────────
 
-// Seed demo data if no themes exist yet
-const themeCount = db.prepare('SELECT COUNT(*) as c FROM themes').get();
-if (themeCount.c === 0) {
-  require('./seed')(db);
-}
-
-// ── Session state (in memory for speed) ─────────────────────────────────────
-
-let activeSessions = {};
-
-// ── REST API ─────────────────────────────────────────────────────────────────
-
-// Get all themes
 app.get('/api/themes', (req, res) => {
-  const themes = db.prepare('SELECT * FROM themes').all();
   res.json(themes);
 });
 
-// Create a new session (host opens registration)
 app.post('/api/session', (req, res) => {
   const { venueCode, themeSlug, setLetter, round, winConditions } = req.body;
-  const code = venueCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const code = (venueCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (!code || code.length < 3) return res.status(400).json({ error: 'Invalid venue code' });
-
-  // Close any existing session with this code
-  db.prepare('DELETE FROM sessions WHERE id = ?').run(code);
-
-  db.prepare(`
-    INSERT INTO sessions (id, theme_slug, set_letter, round, win_conditions, songs_called, status, created_at)
-    VALUES (?, ?, ?, ?, ?, '[]', 'registration', ?)
-  `).run(code, themeSlug, setLetter, round, JSON.stringify(winConditions), Date.now());
 
   activeSessions[code] = {
     venueCode: code,
     themeSlug,
     setLetter,
     round,
-    winConditions,
+    winConditions: winConditions || ['line', 'twolines', 'full'],
     songsCalled: [],
     players: {},
     status: 'registration'
   };
 
+  console.log(`Session created: ${code} | ${themeSlug} Set ${setLetter} Round ${round}`);
   res.json({ success: true, venueCode: code });
 });
 
-// Player joins — look up their card
 app.post('/api/join', (req, res) => {
   const { venueCode, cardNumber } = req.body;
-  const code = venueCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const code = (venueCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
   const session = activeSessions[code];
   if (!session) return res.status(404).json({ error: 'Session not found. Check your venue code.' });
   if (session.status === 'ended') return res.status(400).json({ error: 'This round has ended.' });
 
-  const card = db.prepare(`
-    SELECT * FROM cards
-    WHERE theme_slug = ? AND set_letter = ? AND card_number = ?
-  `).get(session.themeSlug, session.setLetter, parseInt(cardNumber));
+  const cardKey = `${session.themeSlug}|${session.setLetter}|${parseInt(cardNumber)}`;
+  const songs = cards.get(cardKey);
+  if (!songs) return res.status(404).json({ error: 'Card not found. Check your card number.' });
 
-  if (!card) return res.status(404).json({ error: 'Card not found. Check your card number.' });
-
-  const songs = JSON.parse(card.songs);
-  const themeName = db.prepare('SELECT name FROM themes WHERE slug = ?').get(session.themeSlug)?.name || session.themeSlug;
+  const theme = themes.find(t => t.slug === session.themeSlug);
 
   res.json({
     venueCode: code,
     cardNumber: parseInt(cardNumber),
     songs,
-    themeName,
+    themeName: theme ? theme.name : session.themeSlug,
     setLetter: session.setLetter,
     round: session.round,
     winConditions: session.winConditions,
@@ -120,32 +70,19 @@ app.post('/api/join', (req, res) => {
   });
 });
 
-// Get session info (host polling)
-app.get('/api/session/:code', (req, res) => {
-  const code = req.params.code.toUpperCase();
-  const session = activeSessions[code];
-  if (!session) return res.status(404).json({ error: 'Not found' });
-  res.json({
-    ...session,
-    playerCount: Object.keys(session.players).length
-  });
-});
-
-// ── Socket.io real-time ───────────────────────────────────────────────────────
+// ── Socket.io ─────────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
 
-  // Host joins their session room
   socket.on('host:join', ({ venueCode }) => {
     const code = venueCode.toUpperCase();
     socket.join('host:' + code);
     socket.join('session:' + code);
     socket.venueCode = code;
     socket.role = 'host';
-    console.log(`Host joined session ${code}`);
+    console.log(`Host joined: ${code}`);
   });
 
-  // Player joins their session room
   socket.on('player:join', ({ venueCode, cardNumber }) => {
     const code = venueCode.toUpperCase();
     socket.join('session:' + code);
@@ -160,64 +97,43 @@ io.on('connection', (socket) => {
       io.to('host:' + code).emit('session:player_count', { count });
       io.to('host:' + code).emit('session:player_joined', { cardNumber, count });
     }
-
-    console.log(`Player card ${cardNumber} joined session ${code}`);
+    console.log(`Player card ${cardNumber} joined: ${code}`);
   });
 
-  // Host starts the game
   socket.on('host:start', ({ venueCode }) => {
     const code = venueCode.toUpperCase();
     const session = activeSessions[code];
     if (!session) return;
     session.status = 'active';
-    db.prepare('UPDATE sessions SET status = ? WHERE id = ?').run('active', code);
     io.to('session:' + code).emit('session:started', {});
-    console.log(`Session ${code} started`);
+    console.log(`Session started: ${code}`);
   });
 
-  // Host calls a song (from ACRCloud detection)
   socket.on('host:song_called', ({ venueCode, song }) => {
     const code = venueCode.toUpperCase();
     const session = activeSessions[code];
     if (!session) return;
-
-    // Avoid duplicates
-    const alreadyCalled = session.songsCalled.find(s => s.title === song.title);
-    if (alreadyCalled) return;
-
+    if (session.songsCalled.find(s => s.title === song.title)) return;
     session.songsCalled.push(song);
-    db.prepare('UPDATE sessions SET songs_called = ? WHERE id = ?')
-      .run(JSON.stringify(session.songsCalled), code);
-
-    // Broadcast to all players in this session
     io.to('session:' + code).emit('session:song_called', {
       song,
       totalCalled: session.songsCalled.length
     });
-
     console.log(`Song called in ${code}: ${song.title}`);
   });
 
-  // Player claims bingo
   socket.on('player:bingo_claim', ({ venueCode, cardNumber, claimType, markedSquares }) => {
     const code = venueCode.toUpperCase();
     const session = activeSessions[code];
     if (!session) return;
 
-    // Verify claim server-side
-    const card = db.prepare(`
-      SELECT songs FROM cards
-      WHERE theme_slug = ? AND set_letter = ? AND card_number = ?
-    `).get(session.themeSlug, session.setLetter, cardNumber);
+    const cardKey = `${session.themeSlug}|${session.setLetter}|${parseInt(cardNumber)}`;
+    const songs = cards.get(cardKey);
+    if (!songs) return;
 
-    if (!card) return;
-
-    const songs = JSON.parse(card.songs);
     const calledTitles = new Set(session.songsCalled.map(s => s.title));
-
-    // Check each marked square is actually a called song
-    const validMarks = markedSquares.filter(idx => {
-      if (idx === 12) return true; // free square
+    const validMarks = (markedSquares || []).filter(idx => {
+      if (idx === 12) return true;
       const song = songs[idx];
       return song && calledTitles.has(song.title);
     });
@@ -230,7 +146,7 @@ io.on('connection', (socket) => {
     ];
 
     const completedLines = LINES.filter(line => line.every(i => markedSet.has(i)));
-    const isFullCard = validMarks.length >= 24 + 1; // all 24 + free
+    const isFullCard = validMarks.length >= 25;
 
     let verifiedType = null;
     if (isFullCard && session.winConditions.includes('full')) verifiedType = 'full';
@@ -242,19 +158,16 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Send to host for final human confirmation
     io.to('host:' + code).emit('bingo:claim_received', {
       cardNumber,
       claimType: verifiedType,
       socketId: socket.id,
       completedLines
     });
-
     socket.emit('bingo:pending', { message: 'Claim sent to host — waiting for confirmation...' });
-    console.log(`Bingo claim from card ${cardNumber} in session ${code}: ${verifiedType}`);
+    console.log(`Bingo claim from card ${cardNumber} in ${code}: ${verifiedType}`);
   });
 
-  // Host confirms or rejects a bingo claim
   socket.on('host:bingo_resolve', ({ venueCode, targetSocketId, confirmed, cardNumber }) => {
     const code = venueCode.toUpperCase();
     if (confirmed) {
@@ -265,20 +178,17 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Host ends round
   socket.on('host:end_round', ({ venueCode }) => {
     const code = venueCode.toUpperCase();
     const session = activeSessions[code];
     if (session) {
       session.status = 'ended';
-      db.prepare('UPDATE sessions SET status = ? WHERE id = ?').run('ended', code);
       io.to('session:' + code).emit('session:ended', {});
       delete activeSessions[code];
     }
-    console.log(`Session ${code} ended`);
+    console.log(`Session ended: ${code}`);
   });
 
-  // Clean up on disconnect
   socket.on('disconnect', () => {
     if (socket.role === 'player' && socket.venueCode) {
       const session = activeSessions[socket.venueCode];
@@ -291,9 +201,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// ── Start server ─────────────────────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Musical Bingo server running on port ${PORT}`);
+  console.log(`Musical Bingo running on port ${PORT}`);
+  console.log(`Themes: ${themes.map(t => t.name).join(', ')}`);
+  console.log(`Cards in memory: ${cards.size}`);
 });
