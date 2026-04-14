@@ -295,7 +295,8 @@ function markCell(i) {
   if (i === 12 || marked.has(i)) return;
   marked.add(i);
   const cell = document.getElementById('cell-' + i);
-  cell.className = 'cell marked';
+  cell.classList.remove('called');
+  cell.classList.add('marked');
   const ck = cell.querySelector('.check');
   if (ck) ck.style.display = 'block';
 }
@@ -303,7 +304,7 @@ function markCell(i) {
 function unmarkCell(i) {
   marked.delete(i);
   const cell = document.getElementById('cell-' + i);
-  cell.className = 'cell';
+  cell.classList.remove('marked','win-amber','win-green','win-red','called');
   const ck = cell.querySelector('.check');
   if (ck) ck.style.display = 'none';
 }
@@ -354,26 +355,44 @@ function checkWin() {
   const completed = LINES.filter(l => l.every(i => marked.has(i)));
   const btn = document.getElementById('c-bingo-btn');
   const isFullCard = marked.size >= 25;
+  const numCompleted = completed.length;
 
+  // Clear all win highlights first
   document.querySelectorAll('.cell').forEach(c => {
     c.classList.remove('win-amber','win-green','win-red');
   });
 
-  if (isFullCard && winConditions.includes('full')) {
+  // Full card — red
+  if (isFullCard) {
     winState = 'full';
     btn.className = 'bingo-btn full';
     btn.textContent = 'Full card!';
-    completed.forEach(l => l.forEach(i => document.getElementById('cell-'+i)?.classList.add('win-red')));
-  } else if (completed.length >= 2 && winConditions.includes('twolines')) {
+    completed.forEach(l => l.forEach(i => {
+      const el = document.getElementById('cell-'+i);
+      if (el) el.classList.add('win-red');
+    }));
+
+  // Two or more lines — green, ALL lines highlighted
+  } else if (numCompleted >= 2) {
     winState = 'two';
     btn.className = 'bingo-btn two';
     btn.textContent = 'Two lines!';
-    completed.forEach(l => l.forEach(i => document.getElementById('cell-'+i)?.classList.add('win-green')));
-  } else if (completed.length >= 1 && winConditions.includes('line')) {
+    completed.forEach(l => l.forEach(i => {
+      const el = document.getElementById('cell-'+i);
+      if (el) el.classList.add('win-green');
+    }));
+
+  // Exactly one line — amber
+  } else if (numCompleted === 1) {
     winState = 'line';
     btn.className = 'bingo-btn line';
     btn.textContent = 'Line!';
-    completed[0].forEach(i => document.getElementById('cell-'+i)?.classList.add('win-amber'));
+    completed[0].forEach(i => {
+      const el = document.getElementById('cell-'+i);
+      if (el) el.classList.add('win-amber');
+    });
+
+  // No lines
   } else {
     winState = 'none';
     btn.className = 'bingo-btn';
