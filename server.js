@@ -8,12 +8,13 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// Explicit routes — work even if static middleware has a path issue
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host.html')));
-app.get('/player', (req, res) => res.sendFile(path.join(__dirname, 'public', 'player.html')));
+// Serve HTML files directly from root — no subfolder needed
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
+app.get('/host.html', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
+app.get('/player', (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
+app.get('/player.html', (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
 
 // ── Load all card data into memory at startup ─────────────────────────────────
 
