@@ -214,30 +214,30 @@ function show(id) {
 // ── Join game ─────────────────────────────────────────────────────────────────
 async function joinGame() {
   const errEl = document.getElementById('error-msg');
-  try {
-    const codeRaw = document.getElementById('f-code').value || '';
-    const cardRaw = document.getElementById('f-card').value || '';
-    venueCode = codeRaw.toUpperCase().replace(/[^A-Z0-9]/g,'');
-    cardNumber = parseInt(cardRaw.replace(/[^0-9]/g,'')) || 0;
+  const codeRaw = (document.getElementById('f-code').value || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const cardRaw = (document.getElementById('f-card').value || '').replace(/[^0-9]/g,'');
+  const num = parseInt(cardRaw) || 0;
 
-    errEl.style.color = '#888';
-    errEl.textContent = 'Code: ' + venueCode + '  Card: ' + cardNumber;
+  errEl.style.color = '#888';
+  errEl.textContent = 'Tap received. Code: ' + codeRaw + ' Card: ' + num;
 
-    if (!venueCode || venueCode.length < 3) {
-      errEl.style.color = '#c0392b';
-      errEl.textContent = 'Please enter the venue code (at least 3 characters).';
-      return;
-    }
-    if (!cardNumber || cardNumber < 1 || cardNumber > 140) {
-      errEl.style.color = '#c0392b';
-      errEl.textContent = 'Please enter your card number (1 to 140).';
-      return;
-    }
-    errEl.style.color = '#888';
-    errEl.textContent = 'Connecting...';
+  if (codeRaw.length < 3) {
+    errEl.style.color = '#c0392b';
+    errEl.textContent = 'Please enter the venue code.';
+    return;
+  }
+  if (num < 1 || num > 140) {
+    errEl.style.color = '#c0392b';
+    errEl.textContent = 'Please enter your card number (1 to 140).';
+    return;
+  }
 
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('s-connecting').classList.add('active');
+  venueCode = codeRaw;
+  cardNumber = num;
+  errEl.textContent = '';
+
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-connecting').classList.add('active');
 
   try {
     const res = await fetch('/api/join', {
@@ -247,30 +247,34 @@ async function joinGame() {
     });
     const data = await res.json();
     if (!res.ok) {
-      document.getElementById('error-msg').textContent = data.error || 'Could not join. Try again.';
-      show('s-join');
+      errEl.style.color = '#c0392b';
+      errEl.textContent = data.error || 'Could not join. Check your venue code and card number.';
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('s-join').classList.add('active');
       return;
     }
 
     cardSongs = data.songs;
     winConditions = data.winConditions || ['line','twolines','full'];
-
     document.getElementById('c-title').textContent = data.themeName + ' · Set ' + data.setLetter;
     document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + data.round;
 
     buildGrid();
 
-    // Apply any songs already called before joining
     if (data.songsCalled && data.songsCalled.length > 0) {
       data.songsCalled.forEach(song => applySong(song, false));
     }
 
     connectSocket();
-    show('s-card');
+
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('s-card').classList.add('active');
 
   } catch(e) {
-    document.getElementById('error-msg').textContent = 'Connection error. Check your internet and try again.';
-    show('s-join');
+    errEl.style.color = '#c0392b';
+    errEl.textContent = 'Connection error: ' + e.message;
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('s-join').classList.add('active');
   }
 }
 
