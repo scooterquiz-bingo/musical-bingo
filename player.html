@@ -6,24 +6,24 @@
 <title>Musical Bingo</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;min-height:100vh;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#ffffff;color:#1a1a1a;min-height:100vh;}
 .screen{display:none;min-height:100vh;}
 .screen.active{display:flex;flex-direction:column;}
 
 /* ── Join screen ── */
 .join-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;}
 .join-logo{text-align:center;margin-bottom:36px;}
-.join-logo h1{font-size:32px;font-weight:700;letter-spacing:1px;}
-.join-logo p{font-size:14px;color:rgba(255,255,255,0.4);margin-top:8px;}
-.field-label{font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:8px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;width:100%;}
-.field-input{width:100%;padding:16px;font-size:20px;font-weight:600;letter-spacing:4px;text-transform:uppercase;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:14px;color:#fff;text-align:center;margin-bottom:16px;}
+.join-logo h1{font-size:32px;font-weight:700;letter-spacing:1px;color:#1a1a2e;}
+.join-logo p{font-size:14px;color:#888;margin-top:8px;}
+.field-label{font-size:12px;color:#555;margin-bottom:8px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;width:100%;}
+.field-input{width:100%;padding:16px;font-size:20px;font-weight:600;letter-spacing:4px;text-transform:uppercase;background:#f5f5f5;border:1px solid #ddd;border-radius:14px;color:#1a1a2e;text-align:center;margin-bottom:16px;}
 .field-input:focus{outline:none;border-color:#7F77DD;}
-.field-input::placeholder{letter-spacing:1px;font-size:14px;font-weight:400;color:rgba(255,255,255,0.2);}
+.field-input::placeholder{letter-spacing:1px;font-size:14px;font-weight:400;color:#aaa;}
 .field-input.num-input{font-size:28px;letter-spacing:6px;}
 .join-btn{width:100%;padding:18px;background:#534AB7;color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:600;cursor:pointer;transition:all 0.15s;margin-top:8px;}
 .join-btn:disabled{opacity:0.35;cursor:not-allowed;}
 .join-btn:not(:disabled):active{transform:scale(0.98);}
-.join-note{font-size:12px;color:rgba(255,255,255,0.3);text-align:center;margin-top:16px;}
+.join-note{font-size:12px;color:#999;text-align:center;margin-top:16px;}
 .error-msg{color:#F09595;font-size:13px;text-align:center;margin-top:12px;min-height:20px;}
 
 /* ── Card screen ── */
@@ -33,52 +33,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .live-chip{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.1);padding:4px 12px;border-radius:20px;}
 .live-dot{width:7px;height:7px;border-radius:50%;background:#639922;animation:livepulse 1.2s infinite;}
 @keyframes livepulse{0%,100%{opacity:1}50%{opacity:0.3}}
-.win-key{display:flex;gap:16px;justify-content:center;padding:8px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
-.win-key-item{display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,0.4);}
+.win-key{display:flex;gap:16px;justify-content:center;padding:8px 16px;background:#f5f5f5;border-bottom:1px solid #e0e0e0;flex-shrink:0;}
+.win-key-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#666;}
 .win-key-dot{width:8px;height:8px;border-radius:50%;}
-.song-banner{display:flex;align-items:center;gap:12px;padding:11px 16px;background:rgba(83,74,183,0.15);border-bottom:1px solid rgba(83,74,183,0.3);flex-shrink:0;min-height:52px;}
-.song-banner.empty{background:rgba(255,255,255,0.03);border-bottom-color:rgba(255,255,255,0.06);}
+.song-banner{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#EEEDFE;border-bottom:1px solid #AFA9EC;flex-shrink:0;min-height:52px;}
+.song-banner.empty{background:#f8f8f8;border-bottom-color:#e8e8e8;}
 .banner-dot{width:9px;height:9px;border-radius:50%;background:#534AB7;flex-shrink:0;}
-.banner-dot.empty{background:rgba(255,255,255,0.2);}
-.banner-title{font-size:14px;font-weight:600;color:#AFA9EC;}
-.banner-title.empty{color:rgba(255,255,255,0.3);font-weight:400;font-size:13px;}
-.banner-artist{font-size:11px;color:rgba(175,169,236,0.7);}
+.banner-dot.empty{background:#ccc;}
+.banner-title{font-size:14px;font-weight:600;color:#3C3489;}
+.banner-title.empty{color:#aaa;font-weight:400;font-size:13px;}
+.banner-artist{font-size:11px;color:#7F77DD;}
 .match-pill{margin-left:auto;flex-shrink:0;font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:0.3px;}
 .match-pill.hit{background:rgba(57,125,17,0.3);color:#97C459;border:1px solid rgba(97,153,34,0.4);}
-.match-pill.miss{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3);}
+.match-pill.miss{background:#eee;color:#999;}
 
 /* ── Bingo grid ── */
 .bingo-header{display:grid;grid-template-columns:repeat(5,1fr);background:#534AB7;flex-shrink:0;}
 .bingo-letter{text-align:center;padding:10px;font-size:20px;font-weight:700;color:#fff;}
-.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,0.08);flex:1;}
-.cell{background:#1a1a2e;padding:5px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:background 0.25s;min-height:56px;position:relative;}
+.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#ddd;flex:1;}
+.cell{background:#ffffff;padding:5px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:background 0.25s;min-height:56px;position:relative;}
 .cell:active{opacity:0.8;}
-.cell-title{font-size:9px;font-weight:600;color:rgba(255,255,255,0.8);line-height:1.25;}
-.cell-artist{font-size:8px;color:rgba(255,255,255,0.35);margin-top:2px;line-height:1.2;}
-.cell.free{background:#252540;}
-.cell.free .cell-title{color:rgba(255,255,255,0.4);font-size:11px;}
-.cell.called{background:rgba(83,74,183,0.35);animation:cellin 0.4s ease;}
-.cell.called .cell-title{color:#AFA9EC;}
-.cell.marked{background:#2d2d50;}
-.cell.marked .cell-title{color:#fff;}
-.cell.marked .cell-artist{color:rgba(175,169,236,0.6);}
+.cell-title{font-size:9px;font-weight:600;color:#1a1a2e;line-height:1.25;}
+.cell-artist{font-size:8px;color:#888;margin-top:2px;line-height:1.2;}
+.cell.free{background:#EEEDFE;}
+.cell.free .cell-title{color:#534AB7;font-size:11px;}
+.cell.called{background:#CECBF6;animation:cellin 0.4s ease;}
+.cell.called .cell-title{color:#3C3489;}
+.cell.marked{background:#EEEDFE;}
+.cell.marked .cell-title{color:#3C3489;}
+.cell.marked .cell-artist{color:#7F77DD;}
 .cell.marked .check{display:block;}
-.check{display:none;font-size:11px;color:#9FE1CB;margin-bottom:2px;}
-.cell.win-amber{background:#7a4d00;animation:winflash 0.5s ease;}
-.cell.win-amber .cell-title{color:#FAEEDA;}
-.cell.win-amber .cell-artist{color:rgba(250,200,117,0.7);}
-.cell.win-green{background:#1d4a0a;animation:winflash 0.5s ease;}
-.cell.win-green .cell-title{color:#EAF3DE;}
-.cell.win-green .cell-artist{color:rgba(151,196,89,0.7);}
-.cell.win-red{background:#5a1010;animation:winflash 0.5s ease;}
-.cell.win-red .cell-title{color:#FCEBEB;}
-.cell.win-red .cell-artist{color:rgba(240,149,149,0.7);}
-@keyframes cellin{0%{background:rgba(175,169,236,0.6)}100%{background:rgba(83,74,183,0.35)}}
+.check{display:none;font-size:22px;color:#1D9E75;margin-bottom:1px;line-height:1;}
+.cell.win-amber{background:#FAEEDA;animation:winflash 0.5s ease;}
+.cell.win-amber .cell-title{color:#633806;}
+.cell.win-amber .cell-artist{color:#854F0B;}
+.cell.win-green{background:#EAF3DE;animation:winflash 0.5s ease;}
+.cell.win-green .cell-title{color:#27500A;}
+.cell.win-green .cell-artist{color:#3B6D11;}
+.cell.win-red{background:#FCEBEB;animation:winflash 0.5s ease;}
+.cell.win-red .cell-title{color:#791F1F;}
+.cell.win-red .cell-artist{color:#A32D2D;}
+@keyframes cellin{0%{background:#AFA9EC}100%{background:#CECBF6}}
 @keyframes winflash{0%{opacity:0.3}100%{opacity:1}}
 
 /* ── Footer ── */
-.card-footer{background:#1a1a2e;padding:10px 14px;display:flex;align-items:center;gap:10px;border-top:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
-.progress{font-size:12px;color:rgba(255,255,255,0.35);flex:1;}
+.card-footer{background:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;border-top:1px solid #e0e0e0;flex-shrink:0;}
+.progress{font-size:12px;color:#888;flex:1;}
 .bingo-btn{padding:10px 20px;background:rgba(83,74,183,0.4);color:rgba(255,255,255,0.4);border:1px solid rgba(83,74,183,0.4);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;}
 .bingo-btn.line{background:rgba(186,117,23,0.8);color:#FAEEDA;border-color:#BA7517;}
 .bingo-btn.two{background:rgba(59,109,17,0.8);color:#EAF3DE;border-color:#3B6D11;}
@@ -98,7 +98,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* ── Connecting screen ── */
 .connecting{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
-.spinner{width:32px;height:32px;border:2px solid rgba(255,255,255,0.1);border-top-color:#534AB7;border-radius:50%;animation:spin 0.8s linear infinite;}
+.spinner{width:32px;height:32px;border:2px solid #eee;border-top-color:#534AB7;border-radius:50%;animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -190,8 +190,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 let socket;
 let cardSongs = [];
 let marked = new Set([12]); // free square always marked
+  lockedGreenLines = [];
 let autoMarkTimers = {};
 let winState = 'none';
+let lockedGreenLines = [];
 let cardNumber = 0;
 let venueCode = '';
 let winConditions = ['line','twolines','full'];
@@ -357,46 +359,69 @@ function checkWin() {
   const isFullCard = marked.size >= 25;
   const numCompleted = completed.length;
 
-  // Clear all win highlights first
-  document.querySelectorAll('.cell').forEach(c => {
-    c.classList.remove('win-amber','win-green','win-red');
-  });
-
-  // Full card — red
+  // Full card — clear everything and turn all won-line cells red
   if (isFullCard) {
     winState = 'full';
     btn.className = 'bingo-btn full';
     btn.textContent = 'Full card!';
+    document.querySelectorAll('.cell').forEach(c => {
+      c.classList.remove('win-amber','win-green','win-red');
+    });
     completed.forEach(l => l.forEach(i => {
       const el = document.getElementById('cell-'+i);
       if (el) el.classList.add('win-red');
     }));
 
-  // Two or more lines — green, ALL lines highlighted
-  } else if (numCompleted >= 2) {
+  // Exactly two lines just achieved — lock in green on those two lines only
+  } else if (numCompleted >= 2 && winState !== 'two') {
     winState = 'two';
     btn.className = 'bingo-btn two';
     btn.textContent = 'Two lines!';
-    completed.forEach(l => l.forEach(i => {
+    // Clear amber from single line state first
+    document.querySelectorAll('.cell').forEach(c => {
+      c.classList.remove('win-amber','win-green');
+    });
+    // Highlight the first two completed lines green and freeze them
+    const twoLines = completed.slice(0, 2);
+    twoLines.forEach(l => l.forEach(i => {
       const el = document.getElementById('cell-'+i);
       if (el) el.classList.add('win-green');
     }));
+    // Store which lines are locked green so we can restore if needed
+    lockedGreenLines = twoLines;
+
+  // Already at two-line win — restore green on locked lines, ignore new lines
+  } else if (numCompleted >= 2 && winState === 'two') {
+    btn.className = 'bingo-btn two';
+    btn.textContent = 'Two lines!';
+    // Ensure the locked green lines stay green (marking new cells clears them)
+    document.querySelectorAll('.cell').forEach(c => c.classList.remove('win-green'));
+    if (lockedGreenLines.length) {
+      lockedGreenLines.forEach(l => l.forEach(i => {
+        const el = document.getElementById('cell-'+i);
+        if (el) el.classList.add('win-green');
+      }));
+    }
 
   // Exactly one line — amber
   } else if (numCompleted === 1) {
     winState = 'line';
     btn.className = 'bingo-btn line';
     btn.textContent = 'Line!';
+    document.querySelectorAll('.cell').forEach(c => c.classList.remove('win-amber'));
     completed[0].forEach(i => {
       const el = document.getElementById('cell-'+i);
       if (el) el.classList.add('win-amber');
     });
 
-  // No lines
+  // No lines yet
   } else {
     winState = 'none';
     btn.className = 'bingo-btn';
     btn.textContent = 'Bingo!';
+    document.querySelectorAll('.cell').forEach(c => {
+      c.classList.remove('win-amber','win-green','win-red');
+    });
   }
 }
 
