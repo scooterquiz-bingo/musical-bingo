@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Musical Bingo — Host</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f1a;color:#fff;min-height:100vh;}
+.app{max-width:520px;margin:0 auto;padding:0 0 40px;}
+.header{background:#1a1a2e;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08);}
+.header h1{font-size:18px;font-weight:600;letter-spacing:0.5px;}
+.badge{font-size:11px;background:rgba(255,255,255,0.12);padding:4px 12px;border-radius:20px;color:rgba(255,255,255,0.8);}
+.screen{display:none;padding:20px;}
+.screen.active{display:block;}
+.label{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:8px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;}
+.section{margin-bottom:24px;}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.option-card{border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;cursor:pointer;background:rgba(255,255,255,0.04);transition:all 0.15s;}
+.option-card:hover{background:rgba(255,255,255,0.08);}
+.option-card.selected{border-color:#7F77DD;background:rgba(83,74,183,0.2);}
+.option-card .name{font-size:14px;font-weight:500;}
+.option-card .meta{font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;}
+.set-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.set-btn{border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 8px;cursor:pointer;background:rgba(255,255,255,0.04);text-align:center;font-size:22px;font-weight:600;transition:all 0.15s;}
+.set-btn:hover{background:rgba(255,255,255,0.08);}
+.set-btn.selected{border-color:#7F77DD;background:rgba(83,74,183,0.2);color:#AFA9EC;}
+.set-btn small{display:block;font-size:10px;font-weight:400;color:rgba(255,255,255,0.4);margin-top:4px;}
+.set-btn.selected small{color:#7F77DD;}
+.round-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.round-btn{border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px;cursor:pointer;background:rgba(255,255,255,0.04);text-align:center;font-size:14px;font-weight:500;transition:all 0.15s;}
+.round-btn:hover{background:rgba(255,255,255,0.08);}
+.round-btn.selected{border-color:#7F77DD;background:rgba(83,74,183,0.2);}
+.win-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.win-btn{border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px 8px;cursor:pointer;background:rgba(255,255,255,0.04);text-align:center;font-size:12px;font-weight:500;color:rgba(255,255,255,0.5);transition:all 0.15s;}
+.win-btn.active{background:rgba(57,125,17,0.25);border-color:#639922;color:#97C459;}
+.venue-input{width:100%;padding:16px;font-size:24px;font-weight:600;letter-spacing:5px;text-transform:uppercase;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;text-align:center;}
+.venue-input:focus{outline:none;border-color:#7F77DD;}
+.venue-input::placeholder{letter-spacing:1px;font-size:14px;font-weight:400;color:rgba(255,255,255,0.2);}
+.hint{font-size:11px;color:rgba(255,255,255,0.4);margin-top:8px;text-align:center;}
+.hint.ok{color:#97C459;}
+.hint.err{color:#F09595;}
+.big-btn{width:100%;padding:16px;border-radius:12px;border:none;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.big-btn:active{transform:scale(0.98);}
+.big-btn.primary{background:#534AB7;color:#fff;}
+.big-btn.primary:disabled{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3);cursor:not-allowed;transform:none;}
+.big-btn.danger{background:rgba(163,45,45,0.3);color:#F09595;border:1px solid rgba(240,149,149,0.3);}
+.big-btn.success{background:rgba(57,125,17,0.3);color:#97C459;border:1px solid rgba(151,196,89,0.3);}
+.big-btn.ghost{background:transparent;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.15);}
+.room-code-box{background:#534AB7;border-radius:16px;padding:24px;text-align:center;margin-bottom:20px;}
+.room-code{font-size:36px;font-weight:700;letter-spacing:8px;color:#fff;}
+.room-url{font-size:12px;color:rgba(255,255,255,0.6);margin-top:8px;}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.stat{background:rgba(255,255,255,0.06);border-radius:12px;padding:16px;text-align:center;}
+.stat-num{font-size:28px;font-weight:600;}
+.stat-lbl{font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;}
+.reg-feed{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;margin-bottom:20px;max-height:220px;overflow-y:auto;}
+.feed-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:13px;}
+.feed-item+.feed-item{border-top:1px solid rgba(255,255,255,0.06);}
+.feed-item .card-num{font-weight:600;}
+.feed-item .time{font-size:11px;color:rgba(255,255,255,0.3);}
+.feed-empty{padding:20px;text-align:center;font-size:13px;color:rgba(255,255,255,0.3);}
+.acr-panel{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+.acr-indicator{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.2);flex-shrink:0;transition:background 0.3s;}
+.acr-indicator.listening{background:#639922;animation:pulse 1.2s infinite;}
+.acr-indicator.detecting{background:#EF9F27;animation:pulse 0.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.acr-song{font-size:15px;font-weight:500;flex:1;}
+.acr-artist{font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;}
+.acr-timer{font-size:13px;color:rgba(255,255,255,0.3);flex-shrink:0;}
+.songs-feed{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;margin-bottom:16px;max-height:200px;overflow-y:auto;}
+.song-item{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;}
+.song-item+.song-item{border-top:1px solid rgba(255,255,255,0.06);}
+.song-item.new{background:rgba(83,74,183,0.2);}
+.song-title{font-size:13px;font-weight:500;}
+.song-artist{font-size:11px;color:rgba(255,255,255,0.4);}
+.song-num{font-size:11px;color:rgba(255,255,255,0.3);}
+.bingo-alert{display:none;background:rgba(186,117,23,0.2);border:1px solid rgba(239,159,39,0.4);border-radius:12px;padding:16px;margin-top:16px;}
+.bingo-alert-title{font-size:12px;color:rgba(239,159,39,0.8);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+.bingo-alert-card{font-size:18px;font-weight:600;color:#FAEEDA;margin-bottom:14px;}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.back-btn{background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:20px;padding:0;}
+.back-btn:hover{color:#fff;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Musical Bingo</h1>
+    <span class="badge" id="header-badge">Host</span>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <div class="screen active" id="screen-setup">
+    <div style="height:20px;"></div>
+
+    <div class="section">
+      <div class="label">Venue code for tonight</div>
+      <input class="venue-input" id="venue-code" type="text" maxlength="12" placeholder="e.g. SAPPHIRE"
+        oninput="onCodeInput(this)"/>
+      <div class="hint" id="code-hint">Choose something easy — letters and numbers only</div>
+    </div>
+
+    <div class="section">
+      <div class="label">Theme</div>
+      <div class="card-grid" id="theme-grid"></div>
+    </div>
+
+    <div class="section">
+      <div class="label">Card set</div>
+      <div class="set-grid">
+        <div class="set-btn selected" data-set="A" onclick="sel(this,'set-grid','set-btn')">A<small>sequential</small></div>
+        <div class="set-btn" data-set="B" onclick="sel(this,'set-grid','set-btn')">B<small>random</small></div>
+        <div class="set-btn" data-set="C" onclick="sel(this,'set-grid','set-btn')">C<small>random</small></div>
+        <div class="set-btn" data-set="D" onclick="sel(this,'set-grid','set-btn')">D<small>random</small></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">Round</div>
+      <div class="round-grid">
+        <div class="round-btn selected" data-round="1" onclick="sel(this,'round-grid round-btn')">Round 1</div>
+        <div class="round-btn" data-round="2" onclick="sel(this,'round-grid round-btn')">Round 2</div>
+        <div class="round-btn" data-round="3" onclick="sel(this,'round-grid round-btn')">Round 3</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">Win conditions</div>
+      <div class="win-grid">
+        <div class="win-btn active" data-win="line" onclick="this.classList.toggle('active')">Line</div>
+        <div class="win-btn active" data-win="twolines" onclick="this.classList.toggle('active')">Two lines</div>
+        <div class="win-btn active" data-win="full" onclick="this.classList.toggle('active')">Full card</div>
+      </div>
+    </div>
+
+    <button class="big-btn primary" id="open-btn" disabled onclick="openRegistration()">Open registration</button>
+  </div>
+
+  <!-- REGISTRATION SCREEN -->
+  <div class="screen" id="screen-reg">
+    <div style="height:20px;"></div>
+    <button class="back-btn" onclick="showScreen('screen-setup')">&#8592; Back to setup</button>
+
+    <div class="room-code-box">
+      <div class="room-code" id="code-display">—</div>
+      <div class="room-url" id="url-display">Players open the player link and enter this code</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="stat-num" id="stat-players">0</div><div class="stat-lbl">players joined</div></div>
+      <div class="stat"><div class="stat-num">140</div><div class="stat-lbl">max capacity</div></div>
+      <div class="stat"><div class="stat-num" style="color:#97C459;font-size:16px;padding-top:6px;" id="stat-status">Open</div><div class="stat-lbl">status</div></div>
+    </div>
+
+    <div class="label">Registrations</div>
+    <div class="reg-feed" id="reg-feed">
+      <div class="feed-empty">Waiting for players to join...</div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="big-btn ghost" onclick="showScreen('screen-setup')">Back to setup</button>
+      <button class="big-btn primary" id="start-btn" disabled onclick="startGame()">Start game</button>
+    </div>
+    <p style="font-size:11px;color:rgba(255,255,255,0.3);text-align:center;">"Start game" activates once players have registered</p>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="screen-game">
+    <div style="height:20px;"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <div style="font-size:16px;font-weight:600;" id="game-title">—</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:3px;" id="game-sub">—</div>
+      </div>
+      <div style="font-size:11px;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,0.08);" id="game-status-badge">Ready</div>
+    </div>
+
+    <div class="acr-panel" id="acr-panel">
+      <div class="acr-indicator" id="acr-dot"></div>
+      <div style="flex:1;">
+        <div class="acr-song" id="acr-song">Tap "Start listening" to begin</div>
+        <div class="acr-artist" id="acr-artist">ACRCloud · microphone detection</div>
+      </div>
+      <div class="acr-timer" id="acr-timer"></div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="stat-num" id="g-songs">0</div><div class="stat-lbl">songs called</div></div>
+      <div class="stat"><div class="stat-num" id="g-players">0</div><div class="stat-lbl">players</div></div>
+      <div class="stat"><div class="stat-num" id="g-claims" style="color:#F09595;">0</div><div class="stat-lbl">bingo claims</div></div>
+    </div>
+
+    <div class="label">Songs called this round</div>
+    <div class="songs-feed" id="songs-feed">
+      <div class="feed-empty">No songs detected yet</div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="big-btn primary" id="listen-btn" onclick="toggleListen()">Start listening</button>
+      <button class="big-btn ghost" onclick="endRound()">End round</button>
+    </div>
+
+    <div class="bingo-alert" id="bingo-alert">
+      <div class="bingo-alert-title">Bingo claim received</div>
+      <div class="bingo-alert-card" id="bingo-alert-text">Card 47 — Line</div>
+      <div class="btn-row">
+        <button class="big-btn success" onclick="resolveBingo(true)">Confirm win</button>
+        <button class="big-btn danger" onclick="resolveBingo(false)">Reject</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let socket, venueCode='', selTheme='', selSet='A', selRound=1;
+let listening=false, listenTimer=null, countTimer=null, countdown=0;
+let playerCount=0, songCount=0, claimCount=0;
+let pendingClaim=null;
+const calledSongs=[];
+
+// ACRCloud credentials — replace with yours from acrcloud.com
+const ACR_HOST = 'identify-eu-west-1.acrcloud.com';
+const ACR_ACCESS_KEY = 'YOUR_ACCESS_KEY_HERE';
+const ACR_ACCESS_SECRET = 'YOUR_ACCESS_SECRET_HERE';
+
+// ── Socket setup ─────────────────────────────────────────────────────────────
+function connectSocket() {
+  socket = io();
+
+  socket.on('session:player_joined', ({ cardNumber, count }) => {
+    playerCount = count;
+    document.getElementById('stat-players').textContent = count;
+    document.getElementById('g-players').textContent = count;
+    addRegItem(cardNumber);
+    const startBtn = document.getElementById('start-btn');
+    startBtn.disabled = false;
+  });
+
+  socket.on('session:player_count', ({ count }) => {
+    playerCount = count;
+    document.getElementById('stat-players').textContent = count;
+    document.getElementById('g-players').textContent = count;
+  });
+
+  socket.on('bingo:claim_received', ({ cardNumber, claimType, socketId, completedLines }) => {
+    pendingClaim = { cardNumber, socketId };
+    claimCount++;
+    document.getElementById('g-claims').textContent = claimCount;
+    const labels = { line:'Line', twolines:'Two lines', full:'Full card' };
+    document.getElementById('bingo-alert-text').textContent = `Card ${cardNumber} — ${labels[claimType] || claimType}`;
+    document.getElementById('bingo-alert').style.display = 'block';
+  });
+}
+
+// ── Theme loading ─────────────────────────────────────────────────────────────
+async function loadThemes() {
+  try {
+    const res = await fetch('/api/themes');
+    const themes = await res.json();
+    const grid = document.getElementById('theme-grid');
+    grid.innerHTML = '';
+    themes.forEach((t, i) => {
+      const div = document.createElement('div');
+      div.className = 'option-card' + (i === 0 ? ' selected' : '');
+      div.dataset.theme = t.slug;
+      div.innerHTML = `<div class="name">${t.name}</div><div class="meta">140 cards · 4 sets</div>`;
+      div.onclick = () => {
+        document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        div.classList.add('selected');
+        selTheme = t.slug;
+      };
+      grid.appendChild(div);
+      if (i === 0) selTheme = t.slug;
+    });
+  } catch(e) {
+    document.getElementById('theme-grid').innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;">Could not load themes</div>';
+  }
+}
+
+// ── Code input ────────────────────────────────────────────────────────────────
+function onCodeInput(el) {
+  const v = el.value.replace(/[^A-Z0-9]/gi,'').toUpperCase();
+  el.value = v; venueCode = v;
+  const hint = document.getElementById('code-hint');
+  const btn = document.getElementById('open-btn');
+  if (!v) { hint.textContent='Choose something easy — letters and numbers only'; hint.className='hint'; btn.disabled=true; }
+  else if (v.length < 3) { hint.textContent='Too short — at least 3 characters'; hint.className='hint err'; btn.disabled=true; }
+  else { hint.textContent=`Players will type "${v}" on their phone`; hint.className='hint ok'; btn.disabled=false; }
+}
+
+function sel(el, containerClass, btnClass) {
+  const container = el.closest('.' + containerClass.split(' ')[0]) || document.querySelector('.' + containerClass.split(' ')[0]);
+  container.querySelectorAll('.' + (btnClass || containerClass.split(' ')[1])).forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Open registration ─────────────────────────────────────────────────────────
+async function openRegistration() {
+  selSet = document.querySelector('.set-btn.selected')?.dataset.set || 'A';
+  selRound = parseInt(document.querySelector('.round-btn.selected')?.dataset.round || '1');
+  const winConditions = [...document.querySelectorAll('.win-btn.active')].map(b => b.dataset.win);
+
+  const res = await fetch('/api/session', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ venueCode, themeSlug: selTheme, setLetter: selSet, round: selRound, winConditions })
+  });
+  const data = await res.json();
+  if (!data.success) { alert('Error: ' + data.error); return; }
+
+  socket.emit('host:join', { venueCode });
+  document.getElementById('code-display').textContent = venueCode;
+  document.getElementById('url-display').textContent = window.location.origin.replace('/host','') + '/player';
+  document.getElementById('header-badge').textContent = 'Registration open';
+  showScreen('screen-reg');
+}
+
+function addRegItem(cardNumber) {
+  const feed = document.getElementById('reg-feed');
+  if (feed.querySelector('.feed-empty')) feed.innerHTML = '';
+  const now = new Date();
+  const time = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `<span class="card-num">Card ${cardNumber}</span><span class="time">${time}</span>`;
+  feed.insertBefore(item, feed.firstChild);
+}
+
+// ── Start game ────────────────────────────────────────────────────────────────
+function startGame() {
+  socket.emit('host:start', { venueCode });
+  const themeEl = document.querySelector('.option-card.selected');
+  document.getElementById('game-title').textContent = (themeEl?.querySelector('.name')?.textContent || 'Bingo') + ' · Set ' + selSet;
+  document.getElementById('game-sub').textContent = 'Round ' + selRound + ' · ' + venueCode + ' · ' + playerCount + ' players';
+  document.getElementById('g-players').textContent = playerCount;
+  document.getElementById('header-badge').textContent = 'Round ' + selRound + ' live';
+  showScreen('screen-game');
+}
+
+// ── ACRCloud detection ────────────────────────────────────────────────────────
+function toggleListen() {
+  if (listening) { stopListening(); } else { startListening(); }
+}
+
+function startListening() {
+  listening = true;
+  document.getElementById('listen-btn').textContent = 'Stop listening';
+  document.getElementById('listen-btn').style.background = 'rgba(163,45,45,0.5)';
+  document.getElementById('game-status-badge').textContent = 'Listening';
+  document.getElementById('game-status-badge').style.background = 'rgba(57,125,17,0.3)';
+  scheduleDetection();
+}
+
+function stopListening() {
+  listening = false;
+  clearTimeout(listenTimer);
+  clearInterval(countTimer);
+  document.getElementById('listen-btn').textContent = 'Start listening';
+  document.getElementById('listen-btn').style.background = '';
+  document.getElementById('acr-dot').className = 'acr-indicator';
+  document.getElementById('acr-song').textContent = 'Tap "Start listening" to begin';
+  document.getElementById('acr-artist').textContent = 'ACRCloud · microphone detection';
+  document.getElementById('acr-timer').textContent = '';
+  document.getElementById('game-status-badge').textContent = 'Paused';
+  document.getElementById('game-status-badge').style.background = '';
+}
+
+function scheduleDetection() {
+  if (!listening) return;
+  const wait = 8000; // 8 seconds between attempts — adjust as needed
+  countdown = Math.round(wait / 1000);
+  document.getElementById('acr-dot').className = 'acr-indicator listening';
+  document.getElementById('acr-song').textContent = 'Listening for music...';
+  document.getElementById('acr-artist').textContent = 'Hold iPad near the speaker';
+  clearInterval(countTimer);
+  countTimer = setInterval(() => {
+    if (countdown > 0) countdown--;
+    document.getElementById('acr-timer').textContent = countdown + 's';
+  }, 1000);
+  listenTimer = setTimeout(captureAndIdentify, wait);
+}
+
+async function captureAndIdentify() {
+  if (!listening) return;
+  clearInterval(countTimer);
+  document.getElementById('acr-dot').className = 'acr-indicator detecting';
+  document.getElementById('acr-song').textContent = 'Identifying song...';
+  document.getElementById('acr-artist').textContent = 'Matching audio fingerprint';
+  document.getElementById('acr-timer').textContent = '';
+
+  // NOTE: Real ACRCloud integration requires their JavaScript SDK.
+  // Sign up free at acrcloud.com, get your credentials, then:
+  // 1. Replace YOUR_ACCESS_KEY_HERE and YOUR_ACCESS_SECRET_HERE above
+  // 2. Download their JS SDK from acrcloud.com/docs
+  // 3. The SDK handles microphone capture and fingerprinting
+  //
+  // For now this shows how the song result would be handled:
+  //
+  // acrcloud.identify().then(result => {
+  //   if (result.status.code === 0) {
+  //     const track = result.metadata.music[0];
+  //     onSongIdentified({ title: track.title, artist: track.artists[0].name });
+  //   } else {
+  //     onNoMatch();
+  //   }
+  // });
+  //
+  // During setup, this simulation runs instead:
+  simulateDetection();
+}
+
+function simulateDetection() {
+  // REMOVE THIS FUNCTION once ACRCloud is wired up
+  const demos = [
+    {title:'Sweet Dreams',artist:'Eurythmics'},
+    {title:'Take On Me',artist:'A-Ha'},
+    {title:'99 Luft Balloons',artist:'Nena'},
+    {title:'Come On Eileen',artist:"Dexy's Midnight Runners"},
+    {title:'Like A Prayer',artist:'Madonna'},
+    {title:'Faith',artist:'George Michael'},
+    {title:'Safety Dance',artist:'Men Without Hats'},
+    {title:'Video Killed The Radio Star',artist:'Buggles'},
+  ];
+  const avail = demos.filter(s => !calledSongs.find(c => c.title === s.title));
+  if (avail.length > 0) {
+    onSongIdentified(avail[Math.floor(Math.random() * avail.length)]);
+  } else {
+    onNoMatch();
+  }
+}
+
+function onSongIdentified(song) {
+  document.getElementById('acr-dot').className = 'acr-indicator listening';
+  document.getElementById('acr-song').textContent = song.title;
+  document.getElementById('acr-artist').textContent = song.artist;
+  calledSongs.push(song);
+  songCount++;
+  document.getElementById('g-songs').textContent = songCount;
+
+  const feed = document.getElementById('songs-feed');
+  if (feed.querySelector('.feed-empty')) feed.innerHTML = '';
+  const item = document.createElement('div');
+  item.className = 'song-item new';
+  item.innerHTML = `<div><div class="song-title">${song.title}</div><div class="song-artist">${song.artist}</div></div><span class="song-num">#${songCount}</span>`;
+  feed.insertBefore(item, feed.firstChild);
+  setTimeout(() => item.classList.remove('new'), 2500);
+
+  socket.emit('host:song_called', { venueCode, song });
+  scheduleDetection();
+}
+
+function onNoMatch() {
+  document.getElementById('acr-dot').className = 'acr-indicator listening';
+  document.getElementById('acr-song').textContent = 'No match — listening again...';
+  document.getElementById('acr-artist').textContent = '';
+  scheduleDetection();
+}
+
+// ── Bingo resolution ──────────────────────────────────────────────────────────
+function resolveBingo(confirmed) {
+  if (!pendingClaim) return;
+  socket.emit('host:bingo_resolve', {
+    venueCode,
+    targetSocketId: pendingClaim.socketId,
+    confirmed,
+    cardNumber: pendingClaim.cardNumber
+  });
+  pendingClaim = null;
+  document.getElementById('bingo-alert').style.display = 'none';
+}
+
+// ── End round ─────────────────────────────────────────────────────────────────
+function endRound() {
+  if (!confirm('End this round? All players will be disconnected.')) return;
+  stopListening();
+  socket.emit('host:end_round', { venueCode });
+  playerCount=0; songCount=0; claimCount=0; calledSongs.length=0; pendingClaim=null;
+  document.getElementById('stat-players').textContent=0;
+  document.getElementById('g-songs').textContent=0;
+  document.getElementById('g-players').textContent=0;
+  document.getElementById('g-claims').textContent=0;
+  document.getElementById('reg-feed').innerHTML='<div class="feed-empty">Waiting for players to join...</div>';
+  document.getElementById('songs-feed').innerHTML='<div class="feed-empty">No songs detected yet</div>';
+  document.getElementById('start-btn').disabled=true;
+  document.getElementById('bingo-alert').style.display='none';
+  selRound = Math.min(selRound+1, 3);
+  document.querySelectorAll('.round-btn').forEach(b => {
+    b.classList.remove('selected');
+    if (parseInt(b.dataset.round)===selRound) b.classList.add('selected');
+  });
+  document.getElementById('header-badge').textContent='Host';
+  showScreen('screen-setup');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+connectSocket();
+loadThemes();
+</script>
+</body>
+</html>
