@@ -219,11 +219,12 @@ async function joinGame() {
   const num = parseInt(cardRaw) || 0;
 
   errEl.style.color = '#888';
-  errEl.textContent = 'Step 1: validating...';
+  errEl.textContent = 'Step 1: code=' + codeRaw + ' len=' + codeRaw.length + ' num=' + num;
 
-  if (codeRaw.length < 3) { errEl.style.color='#c0392b'; errEl.textContent='Enter venue code.'; return; }
-  if (num < 1 || num > 140) { errEl.style.color='#c0392b'; errEl.textContent='Enter card number 1-140.'; return; }
+  if (codeRaw.length < 3) { errEl.style.color='#c0392b'; errEl.textContent='Code too short: ' + codeRaw; return; }
+  if (num < 1 || num > 140) { errEl.style.color='#c0392b'; errEl.textContent='Bad card num: ' + num; return; }
 
+  errEl.textContent = 'Step 1 passed. Setting venueCode...';
   venueCode = codeRaw;
   cardNumber = num;
   errEl.textContent = 'Step 2: contacting server...';
