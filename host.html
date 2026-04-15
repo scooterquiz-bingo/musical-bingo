@@ -301,23 +301,51 @@ function sel(el, containerClass, btnClass) {
 
 // ── Open registration ─────────────────────────────────────────────────────────
 async function openRegistration() {
-  selSet = document.querySelector('.set-btn.selected')?.dataset.set || 'A';
-  selRound = parseInt(document.querySelector('.round-btn.selected')?.dataset.round || '1');
-  const winConditions = [...document.querySelectorAll('.win-btn.active')].map(b => b.dataset.win);
+  try {
+    selSet = document.querySelector('.set-btn.selected')?.dataset.set || 'A';
+    selRound = parseInt(document.querySelector('.round-btn.selected')?.dataset.round || '1');
+    const winConditions = [...document.querySelectorAll('.win-btn.active')].map(b => b.dataset.win);
 
-  const res = await fetch('/api/session', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ venueCode, themeSlug: selTheme, setLetter: selSet, round: selRound, winConditions })
-  });
-  const data = await res.json();
-  if (!data.success) { alert('Error: ' + data.error); return; }
+    // Show working state
+    const btn = document.getElementById('open-btn');
+    btn.textContent = 'Opening...';
+    btn.disabled = true;
 
-  socket.emit('host:join', { venueCode });
-  document.getElementById('code-display').textContent = venueCode;
-  document.getElementById('url-display').textContent = window.location.origin.replace('/host','') + '/player';
-  document.getElementById('header-badge').textContent = 'Registration open';
-  showScreen('screen-reg');
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ venueCode, themeSlug: selTheme, setLetter: selSet, round: selRound, winConditions })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      alert('Could not create session: ' + (data.error || 'Unknown error'));
+      btn.textContent = 'Open registration';
+      btn.disabled = false;
+      return;
+    }
+
+    // Session created — now join the socket room
+    if (socket && socket.connected) {
+      socket.emit('host:join', { venueCode });
+    } else {
+      // Socket not ready yet — reconnect and join
+      socket = io();
+      socket.on('connect', () => socket.emit('host:join', { venueCode }));
+    }
+
+    document.getElementById('code-display').textContent = venueCode;
+    document.getElementById('url-display').textContent = window.location.origin + '/player';
+    document.getElementById('header-badge').textContent = 'Registration open';
+    showScreen('screen-reg');
+
+  } catch(e) {
+    alert('Error opening registration: ' + e.message);
+    const btn = document.getElementById('open-btn');
+    btn.textContent = 'Open registration';
+    btn.disabled = false;
+  }
 }
 
 function addRegItem(cardNumber) {
