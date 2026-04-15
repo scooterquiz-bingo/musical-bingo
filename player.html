@@ -5,143 +5,141 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>Musical Bingo</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#ffffff;color:#1a1a1a;min-height:100vh;}
-.screen{display:none;min-height:100vh;}
-.screen.active{display:flex;flex-direction:column;}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1a1a; }
+
+/* Screens */
+.screen { display: none; min-height: 100vh; flex-direction: column; }
+.screen.active { display: flex; }
 
 /* ── Join screen ── */
-.join-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;}
-.join-logo{text-align:center;margin-bottom:36px;}
-.join-logo h1{font-size:32px;font-weight:700;letter-spacing:1px;color:#1a1a2e;}
-.join-logo p{font-size:14px;color:#888;margin-top:8px;}
-.field-label{font-size:12px;color:#555;margin-bottom:8px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;width:100%;}
-.field-input{width:100%;padding:16px;font-size:20px;font-weight:600;letter-spacing:4px;text-transform:uppercase;background:#f5f5f5;border:1px solid #ddd;border-radius:14px;color:#1a1a2e;text-align:center;margin-bottom:16px;}
-.field-input:focus{outline:none;border-color:#7F77DD;}
-.field-input::placeholder{letter-spacing:1px;font-size:14px;font-weight:400;color:#aaa;}
-.field-input.num-input{font-size:28px;letter-spacing:6px;}
-.join-btn{width:100%;padding:18px;background:#534AB7;color:#fff;border:none;border-radius:14px;font-size:17px;font-weight:600;cursor:pointer;transition:all 0.15s;margin-top:8px;}
-
-.join-btn:not(:disabled):active{transform:scale(0.98);}
-.join-note{font-size:12px;color:#999;text-align:center;margin-top:16px;}
-.error-msg{color:#F09595;font-size:13px;text-align:center;margin-top:12px;min-height:20px;}
+.join-header { padding: 14px 18px; border-bottom: 1px solid #eee; }
+.join-header a { font-size: 13px; color: #999; text-decoration: none; }
+.join-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
+.join-logo { text-align: center; margin-bottom: 32px; }
+.join-logo h1 { font-size: 30px; font-weight: 700; color: #1a1a2e; }
+.join-logo p { font-size: 14px; color: #888; margin-top: 6px; }
+.join-form { width: 100%; max-width: 320px; }
+.field-label { font-size: 11px; font-weight: 700; color: #555; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+.field-input { width: 100%; padding: 14px; font-size: 18px; font-weight: 600; letter-spacing: 3px; text-align: center; text-transform: uppercase; background: #f5f5f5; border: 1px solid #ddd; border-radius: 12px; color: #1a1a2e; margin-bottom: 16px; }
+.field-input:focus { outline: none; border-color: #534AB7; background: #fff; }
+.field-input::placeholder { font-size: 14px; font-weight: 400; letter-spacing: 1px; color: #bbb; }
+.num-input { font-size: 26px; letter-spacing: 6px; }
+.join-btn { width: 100%; padding: 16px; background: #534AB7; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+.join-btn:active { opacity: 0.85; transform: scale(0.98); }
+.msg { font-size: 13px; text-align: center; margin-top: 12px; min-height: 20px; color: #888; }
+.msg.error { color: #c0392b; }
+.join-note { font-size: 12px; color: #bbb; text-align: center; margin-top: 16px; }
 
 /* ── Card screen ── */
-.card-header{background:#1a1a2e;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;}
-.card-header .title{font-size:14px;font-weight:600;}
-.card-header .sub{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
-.live-chip{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.1);padding:4px 12px;border-radius:20px;}
-.live-dot{width:7px;height:7px;border-radius:50%;background:#639922;animation:livepulse 1.2s infinite;}
-@keyframes livepulse{0%,100%{opacity:1}50%{opacity:0.3}}
-.win-key{display:flex;gap:16px;justify-content:center;padding:8px 16px;background:#f5f5f5;border-bottom:1px solid #e0e0e0;flex-shrink:0;}
-.win-key-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#666;}
-.win-key-dot{width:8px;height:8px;border-radius:50%;}
-.song-banner{display:flex;align-items:center;gap:12px;padding:11px 16px;background:#EEEDFE;border-bottom:1px solid #AFA9EC;flex-shrink:0;min-height:52px;}
-.song-banner.empty{background:#f8f8f8;border-bottom-color:#e8e8e8;}
-.banner-dot{width:9px;height:9px;border-radius:50%;background:#534AB7;flex-shrink:0;}
-.banner-dot.empty{background:#ccc;}
-.banner-title{font-size:14px;font-weight:600;color:#3C3489;}
-.banner-title.empty{color:#aaa;font-weight:400;font-size:13px;}
-.banner-artist{font-size:11px;color:#7F77DD;}
-.match-pill{margin-left:auto;flex-shrink:0;font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:0.3px;}
-.match-pill.hit{background:rgba(57,125,17,0.3);color:#97C459;border:1px solid rgba(97,153,34,0.4);}
-.match-pill.miss{background:#eee;color:#999;}
+.card-header { background: #1a1a2e; padding: 11px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.card-header a { font-size: 16px; color: rgba(255,255,255,0.4); text-decoration: none; flex-shrink: 0; }
+.card-header .info { flex: 1; }
+.card-header .title { font-size: 13px; font-weight: 600; color: #fff; }
+.card-header .sub { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+.live-chip { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); padding: 3px 10px; border-radius: 20px; font-size: 10px; color: rgba(255,255,255,0.7); flex-shrink: 0; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #639922; animation: livepulse 1.2s infinite; }
+@keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-/* ── Bingo grid ── */
-.bingo-header{display:grid;grid-template-columns:repeat(5,1fr);background:#534AB7;flex-shrink:0;}
-.bingo-letter{text-align:center;padding:10px;font-size:20px;font-weight:700;color:#fff;}
-.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#ddd;flex:1;}
-.cell{background:#ffffff;padding:5px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:background 0.25s;min-height:56px;position:relative;}
-.cell:active{opacity:0.8;}
-.cell-title{font-size:9px;font-weight:600;color:#1a1a2e;line-height:1.25;}
-.cell-artist{font-size:8px;color:#888;margin-top:2px;line-height:1.2;}
-.cell.free{background:#EEEDFE;}
-.cell.free .cell-title{color:#534AB7;font-size:11px;}
-.cell.called{background:#CECBF6;animation:cellin 0.4s ease;}
-.cell.called .cell-title{color:#3C3489;}
-.cell.marked{background:#EEEDFE;}
-.cell.marked .cell-title{color:#3C3489;}
-.cell.marked .cell-artist{color:#7F77DD;}
-.cell.marked .check{display:block;}
-.check{display:none;font-size:22px;color:#1D9E75;margin-bottom:1px;line-height:1;}
-.cell.win-amber{background:#FAEEDA;animation:winflash 0.5s ease;}
-.cell.win-amber .cell-title{color:#633806;}
-.cell.win-amber .cell-artist{color:#854F0B;}
-.cell.win-green{background:#EAF3DE;animation:winflash 0.5s ease;}
-.cell.win-green .cell-title{color:#27500A;}
-.cell.win-green .cell-artist{color:#3B6D11;}
-.cell.win-red{background:#FCEBEB;animation:winflash 0.5s ease;}
-.cell.win-red .cell-title{color:#791F1F;}
-.cell.win-red .cell-artist{color:#A32D2D;}
-@keyframes cellin{0%{background:#AFA9EC}100%{background:#CECBF6}}
-@keyframes winflash{0%{opacity:0.3}100%{opacity:1}}
+.win-key { display: flex; gap: 14px; justify-content: center; padding: 7px; background: #f8f8f8; border-bottom: 1px solid #eee; flex-shrink: 0; }
+.win-key-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: #666; }
+.win-key-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-/* ── Footer ── */
-.card-footer{background:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;border-top:1px solid #e0e0e0;flex-shrink:0;}
-.progress{font-size:12px;color:#888;flex:1;}
-.bingo-btn{padding:10px 20px;background:rgba(83,74,183,0.4);color:rgba(255,255,255,0.4);border:1px solid rgba(83,74,183,0.4);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;}
-.bingo-btn.line{background:rgba(186,117,23,0.8);color:#FAEEDA;border-color:#BA7517;}
-.bingo-btn.two{background:rgba(59,109,17,0.8);color:#EAF3DE;border-color:#3B6D11;}
-.bingo-btn.full{background:#A32D2D;color:#FCEBEB;border-color:#A32D2D;animation:urgentpulse 0.8s infinite;}
-@keyframes urgentpulse{0%,100%{opacity:1}50%{opacity:0.65}}
+.song-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #EEEDFE; border-bottom: 1px solid #AFA9EC; min-height: 50px; flex-shrink: 0; }
+.song-banner.empty { background: #f8f8f8; border-bottom-color: #eee; }
+.banner-dot { width: 8px; height: 8px; border-radius: 50%; background: #534AB7; flex-shrink: 0; }
+.banner-dot.empty { background: #ccc; }
+.banner-song { font-size: 13px; font-weight: 600; color: #3C3489; }
+.banner-song.empty { color: #bbb; font-weight: 400; font-size: 12px; }
+.banner-artist { font-size: 11px; color: #7F77DD; margin-top: 1px; }
+.match-pill { margin-left: auto; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+.match-pill.hit { background: #EAF3DE; color: #27500A; }
+.match-pill.miss { background: #eee; color: #999; }
 
-/* ── Win overlay ── */
-.win-overlay{display:none;min-height:100vh;background:rgba(10,10,25,0.97);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;}
-.win-overlay.show{display:flex;}
-.win-star{font-size:64px;margin-bottom:24px;}
-.win-title{font-size:28px;font-weight:700;color:#fff;margin-bottom:12px;}
-.win-sub{font-size:15px;color:rgba(255,255,255,0.5);}
-.win-type-badge{display:inline-block;padding:6px 20px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:24px;}
-.win-type-badge.line{background:rgba(186,117,23,0.3);color:#FAC775;border:1px solid #BA7517;}
-.win-type-badge.two{background:rgba(59,109,17,0.3);color:#97C459;border:1px solid #3B6D11;}
-.win-type-badge.full{background:rgba(163,45,45,0.3);color:#F09595;border:1px solid #A32D2D;}
+.bingo-header { display: grid; grid-template-columns: repeat(5,1fr); background: #534AB7; flex-shrink: 0; }
+.bingo-letter { text-align: center; padding: 9px; font-size: 20px; font-weight: 700; color: #fff; }
 
-/* ── Connecting screen ── */
-.connecting{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
-.spinner{width:32px;height:32px;border:2px solid #eee;border-top-color:#534AB7;border-radius:50%;animation:spin 0.8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
+.bingo-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: #ddd; flex: 1; }
+.cell { background: #fff; padding: 4px 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; cursor: pointer; min-height: 56px; transition: background 0.2s; }
+.cell-title { font-size: 9px; font-weight: 600; color: #1a1a2e; line-height: 1.25; }
+.cell-artist { font-size: 8px; color: #888; margin-top: 2px; line-height: 1.2; }
+.check { display: none; font-size: 22px; color: #1D9E75; line-height: 1; margin-bottom: 1px; }
+
+.cell.free { background: #EEEDFE; }
+.cell.free .cell-title { color: #534AB7; font-size: 11px; }
+
+.cell.called { background: #CECBF6; }
+.cell.called .cell-title { color: #3C3489; }
+.cell.called .cell-artist { color: #7F77DD; }
+
+.cell.marked { background: #EEEDFE; }
+.cell.marked .cell-title { color: #3C3489; }
+.cell.marked .cell-artist { color: #7F77DD; }
+.cell.marked .check { display: block; }
+
+.cell.win-amber { background: #FAEEDA; }
+.cell.win-amber .cell-title { color: #633806; }
+.cell.win-amber .cell-artist { color: #854F0B; }
+
+.cell.win-green { background: #EAF3DE; }
+.cell.win-green .cell-title { color: #27500A; }
+.cell.win-green .cell-artist { color: #3B6D11; }
+
+.cell.win-red { background: #FCEBEB; }
+.cell.win-red .cell-title { color: #791F1F; }
+.cell.win-red .cell-artist { color: #A32D2D; }
+
+.card-footer { background: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; flex-shrink: 0; }
+.progress { font-size: 12px; color: #888; flex: 1; }
+.bingo-btn { padding: 10px 18px; background: #eee; color: #999; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.bingo-btn.line { background: #BA7517; color: #FAEEDA; }
+.bingo-btn.two { background: #3B6D11; color: #EAF3DE; }
+.bingo-btn.full { background: #A32D2D; color: #FCEBEB; animation: pulse 0.8s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.65} }
+
+/* Win overlay */
+.win-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,10,25,0.95); align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 40px; z-index: 100; }
+.win-overlay.show { display: flex; }
+.win-star { font-size: 60px; margin-bottom: 20px; }
+.win-title { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+.win-sub { font-size: 14px; color: rgba(255,255,255,0.5); }
+.win-badge { display: inline-block; padding: 5px 18px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 20px; }
+.win-badge.line { background: rgba(186,117,23,0.3); color: #FAC775; border: 1px solid #BA7517; }
+.win-badge.two { background: rgba(59,109,17,0.3); color: #97C459; border: 1px solid #3B6D11; }
+.win-badge.full { background: rgba(163,45,45,0.3); color: #F09595; border: 1px solid #A32D2D; }
 </style>
 </head>
 <body>
 
 <!-- JOIN SCREEN -->
 <div class="screen active" id="s-join">
-  <div style="padding:16px 20px;border-bottom:1px solid #eee;">
-    <a href="/" style="font-size:13px;color:#999;text-decoration:none;">&#8592; Home</a>
+  <div class="join-header">
+    <a href="/">&#8592; Home</a>
   </div>
-  <div class="join-wrap">
+  <div class="join-body">
     <div class="join-logo">
       <h1>Musical Bingo</h1>
       <p>Enter your details to join tonight's game</p>
     </div>
-    <div style="width:100%;max-width:340px;">
+    <div class="join-form">
       <div class="field-label">Venue code</div>
-      <input class="field-input" id="f-code" type="text" maxlength="12" placeholder="e.g. SAPPHIRE" autocomplete="off"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+      <input class="field-input" id="f-code" type="text" maxlength="12" placeholder="e.g. SAPPHIRE" autocomplete="off"/>
       <div class="field-label">Your card number</div>
-      <input class="field-input num-input" id="f-card" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="47"/>
+      <input class="field-input num-input" id="f-card" type="tel" inputmode="numeric" maxlength="3" placeholder="47"/>
       <button class="join-btn" id="join-btn" onclick="joinGame()">Join game</button>
-      <div class="error-msg" id="error-msg"></div>
+      <div class="msg" id="msg"></div>
       <p class="join-note">Your card number is printed in the footer of your physical card</p>
     </div>
-  </div>
-</div>
-
-<!-- CONNECTING SCREEN -->
-<div class="screen" id="s-connecting">
-  <div class="connecting">
-    <div class="spinner"></div>
-    <div style="font-size:14px;color:#888;">Connecting to game...</div>
   </div>
 </div>
 
 <!-- CARD SCREEN -->
 <div class="screen" id="s-card">
   <div class="card-header">
-    <a href="/" style="font-size:18px;color:rgba(255,255,255,0.3);text-decoration:none;margin-right:10px;flex-shrink:0;">&#8592;</a>
-    <div style="flex:1;">
+    <a href="/">&#8592;</a>
+    <div class="info">
       <div class="title" id="c-title">Musical Bingo</div>
-      <div class="sub" id="c-sub">Loading...</div>
+      <div class="sub" id="c-sub"></div>
     </div>
     <div class="live-chip"><div class="live-dot"></div><span>Live</span></div>
   </div>
@@ -152,11 +150,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="win-key-item"><div class="win-key-dot" style="background:#A32D2D;"></div>Full card</div>
   </div>
 
-  <div class="song-banner empty" id="c-banner">
-    <div class="banner-dot empty" id="c-banner-dot"></div>
+  <div class="song-banner empty" id="banner">
+    <div class="banner-dot empty" id="banner-dot"></div>
     <div>
-      <div class="banner-title empty" id="c-banner-title">Waiting for first song...</div>
-      <div class="banner-artist" id="c-banner-artist"></div>
+      <div class="banner-song empty" id="banner-song">Waiting for first song...</div>
+      <div class="banner-artist" id="banner-artist"></div>
     </div>
   </div>
 
@@ -167,158 +165,140 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="bingo-letter">G</div>
     <div class="bingo-letter">O</div>
   </div>
-  <div class="bingo-grid" id="c-grid"></div>
+  <div class="bingo-grid" id="grid"></div>
 
   <div class="card-footer">
-    <div class="progress" id="c-progress">0 / 24 matched</div>
-    <button class="bingo-btn" id="c-bingo-btn" onclick="claimBingo()">Bingo!</button>
+    <div class="progress" id="progress">0 / 24 matched</div>
+    <button class="bingo-btn" id="bingo-btn" onclick="claimBingo()">Bingo!</button>
   </div>
 </div>
 
 <!-- WIN OVERLAY -->
-<div class="win-overlay" id="s-win">
+<div class="win-overlay" id="win-overlay">
   <div class="win-star">★</div>
-  <div class="win-type-badge" id="win-badge">Line</div>
-  <div class="win-title" id="win-title">Bingo!</div>
+  <div class="win-badge" id="win-badge">Line</div>
+  <div class="win-title">Bingo!</div>
   <div class="win-sub" id="win-sub">Waiting for host to verify...</div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-// ── State ─────────────────────────────────────────────────────────────────────
-let socket;
-let cardSongs = [];
-let marked = new Set([12]); // free square always marked
-  lockedGreenLines = [];
-let autoMarkTimers = {};
-let winState = 'none';
-let lockedGreenLines = [];
-let cardNumber = 0;
-let venueCode = '';
-let winConditions = ['line','twolines','full'];
 
-const LINES = [
+// ── State ─────────────────────────────────────────────────────────────────────
+var venueCode = '';
+var cardNumber = 0;
+var cardSongs = [];
+var winConditions = ['line','twolines','full'];
+var marked = {};
+var lockedGreenLines = [];
+var winState = 'none';
+var autoMarkTimers = {};
+var socket = null;
+
+var LINES = [
   [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
   [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
   [0,6,12,18,24],[4,8,12,16,20]
 ];
 
-// ── UI helpers ────────────────────────────────────────────────────────────────
-function show(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
   document.getElementById(id).classList.add('active');
 }
 
-// validation handled in joinGame()
-
-// ── Join game ─────────────────────────────────────────────────────────────────
-async function joinGame() {
-  const errEl = document.getElementById('error-msg');
-  const codeRaw = (document.getElementById('f-code').value || '').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  const cardRaw = (document.getElementById('f-card').value || '').replace(/[^0-9]/g,'');
-  const num = parseInt(cardRaw) || 0;
-
-  errEl.style.color = '#888';
-  errEl.textContent = 'Step 1: code=' + codeRaw + ' len=' + codeRaw.length + ' num=' + num;
-
-  if (codeRaw.length < 3) { errEl.style.color='#c0392b'; errEl.textContent='Code too short: ' + codeRaw; return; }
-  if (num < 1 || num > 140) { errEl.style.color='#c0392b'; errEl.textContent='Bad card num: ' + num; return; }
-
-  errEl.textContent = 'Step 1 passed. Setting venueCode...';
-  venueCode = codeRaw;
-  cardNumber = num;
-  errEl.textContent = 'Step 2: contacting server...';
-
-  let res;
-  try {
-    res = await fetch('/api/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ venueCode, cardNumber })
-    });
-  } catch(e) {
-    errEl.style.color = '#c0392b';
-    errEl.textContent = 'Network error: ' + e.message;
-    return;
-  }
-
-  errEl.textContent = 'Step 3: reading response (' + res.status + ')...';
-
-  let data;
-  try {
-    data = await res.json();
-  } catch(e) {
-    errEl.style.color = '#c0392b';
-    errEl.textContent = 'Bad server response: ' + e.message;
-    return;
-  }
-
-  if (!res.ok) {
-    errEl.style.color = '#c0392b';
-    errEl.textContent = data.error || 'Join failed.';
-    return;
-  }
-
-  errEl.textContent = 'Step 4: building card...';
-
-  cardSongs = data.songs;
-  winConditions = data.winConditions || ['line','twolines','full'];
-
-  document.getElementById('c-title').textContent = (data.themeName||'Bingo') + ' · Set ' + (data.setLetter||'A');
-  document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + (data.round||1);
-
-  errEl.textContent = 'Step 5: rendering grid...';
-  buildGrid();
-
-  errEl.textContent = 'Step 6: connecting socket...';
-  connectSocket();
-
-  if (data.songsCalled && data.songsCalled.length > 0) {
-    data.songsCalled.forEach(song => { try { applySong(song, false); } catch(e) {} });
-  }
-
-  errEl.textContent = 'Step 7: showing card...';
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-card').classList.add('active');
+function setMsg(text, isError) {
+  var el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = isError ? 'msg error' : 'msg';
 }
 
+// ── Join ──────────────────────────────────────────────────────────────────────
+function joinGame() {
+  var codeEl = document.getElementById('f-code');
+  var cardEl = document.getElementById('f-card');
+  var code = (codeEl.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  var num = parseInt((cardEl.value || '').replace(/[^0-9]/g, '')) || 0;
 
-// ── Build the 5x5 grid ────────────────────────────────────────────────────────
+  if (code.length < 3) { setMsg('Please enter the venue code.', true); return; }
+  if (num < 1 || num > 140) { setMsg('Please enter your card number (1-140).', true); return; }
+
+  venueCode = code;
+  cardNumber = num;
+  setMsg('Joining...', false);
+  document.getElementById('join-btn').disabled = true;
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/join', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      var data = JSON.parse(xhr.responseText);
+      cardSongs = data.songs;
+      winConditions = data.winConditions || ['line','twolines','full'];
+      document.getElementById('c-title').textContent = (data.themeName || 'Bingo') + ' · Set ' + (data.setLetter || 'A');
+      document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + (data.round || 1);
+      buildGrid();
+      if (data.songsCalled && data.songsCalled.length) {
+        for (var i = 0; i < data.songsCalled.length; i++) applySong(data.songsCalled[i], false);
+      }
+      connectSocket();
+      showScreen('s-card');
+    } else {
+      try {
+        var err = JSON.parse(xhr.responseText);
+        setMsg(err.error || 'Could not join. Check your code and card number.', true);
+      } catch(e) {
+        setMsg('Error ' + xhr.status + '. Try again.', true);
+      }
+      document.getElementById('join-btn').disabled = false;
+    }
+  };
+  xhr.onerror = function() {
+    setMsg('Network error. Check your connection.', true);
+    document.getElementById('join-btn').disabled = false;
+  };
+  xhr.send(JSON.stringify({ venueCode: venueCode, cardNumber: cardNumber }));
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
 function buildGrid() {
-  const grid = document.getElementById('c-grid');
+  var grid = document.getElementById('grid');
   grid.innerHTML = '';
-  marked = new Set([12]);
+  marked = { 12: true };
   lockedGreenLines = [];
   winState = 'none';
 
-  cardSongs.forEach((song, i) => {
-    const cell = document.createElement('div');
-    const isFree = (i === 12 || song === null);
-    cell.className = 'cell' + (isFree ? ' free' : '');
+  for (var i = 0; i < cardSongs.length; i++) {
+    var song = cardSongs[i];
+    var isFree = (i === 12 || song === null);
+    var cell = document.createElement('div');
+    cell.className = 'cell' + (isFree ? ' free marked' : '');
     cell.id = 'cell-' + i;
-    cell.onclick = () => tapCell(i);
+    cell.setAttribute('data-idx', i);
+    cell.onclick = tapCell;
     if (isFree) {
-      cell.innerHTML = '<span style="font-size:16px;color:#534AB7;">★</span><span class="cell-title" style="margin-top:3px;font-size:10px;color:#534AB7;">Free</span>';
+      cell.innerHTML = '<span style="font-size:16px;color:#534AB7;">★</span><span class="cell-title" style="color:#534AB7;margin-top:2px;">Free</span>';
     } else {
-      const title = song.title || '';
-      const artist = song.artist || '';
-      cell.innerHTML = `<span class="check">✓</span><span class="cell-title">${title}</span><span class="cell-artist">${artist}</span>`;
+      cell.innerHTML = '<span class="check">✓</span><span class="cell-title">' + (song.title||'') + '</span><span class="cell-artist">' + (song.artist||'') + '</span>';
     }
     grid.appendChild(cell);
-  });
+  }
   updateProgress();
 }
 
-// ── Player taps a cell manually ───────────────────────────────────────────────
-function tapCell(i) {
+function tapCell() {
+  var i = parseInt(this.getAttribute('data-idx'));
   if (i === 12) return;
-  if (marked.has(i)) {
-    unmarkCell(i);
+  if (marked[i]) {
+    delete marked[i];
+    var cell = document.getElementById('cell-' + i);
+    cell.classList.remove('marked','win-amber','win-green','win-red');
+    var ck = cell.querySelector('.check');
+    if (ck) ck.style.display = 'none';
   } else {
-    clearTimeout(autoMarkTimers[i]);
-    delete autoMarkTimers[i];
-    const cell = document.getElementById('cell-' + i);
-    cell.classList.remove('called');
+    if (autoMarkTimers[i]) { clearTimeout(autoMarkTimers[i]); delete autoMarkTimers[i]; }
     markCell(i);
   }
   updateProgress();
@@ -326,192 +306,166 @@ function tapCell(i) {
 }
 
 function markCell(i) {
-  if (i === 12 || marked.has(i)) return;
-  marked.add(i);
-  const cell = document.getElementById('cell-' + i);
+  if (i === 12 || marked[i]) return;
+  marked[i] = true;
+  var cell = document.getElementById('cell-' + i);
+  if (!cell) return;
   cell.classList.remove('called');
   cell.classList.add('marked');
-  const ck = cell.querySelector('.check');
+  var ck = cell.querySelector('.check');
   if (ck) ck.style.display = 'block';
 }
 
-function unmarkCell(i) {
-  marked.delete(i);
-  const cell = document.getElementById('cell-' + i);
-  cell.classList.remove('marked','win-amber','win-green','win-red','called');
-  const ck = cell.querySelector('.check');
-  if (ck) ck.style.display = 'none';
+function updateProgress() {
+  var count = Object.keys(marked).length - 1;
+  document.getElementById('progress').textContent = count + ' / 24 matched';
 }
 
-// ── Song called by host ───────────────────────────────────────────────────────
-function applySong(song, showBanner = true) {
-  const idx = cardSongs.findIndex(s => s && s.title === song.title);
-  const isMatch = idx !== -1 && idx !== 12;
+// ── Song called ───────────────────────────────────────────────────────────────
+function applySong(song, showBanner) {
+  var idx = -1;
+  for (var i = 0; i < cardSongs.length; i++) {
+    if (cardSongs[i] && cardSongs[i].title === song.title) { idx = i; break; }
+  }
+  var isMatch = idx !== -1 && idx !== 12;
 
   if (showBanner) {
-    const banner = document.getElementById('c-banner');
+    var banner = document.getElementById('banner');
     banner.className = 'song-banner';
-    document.getElementById('c-banner-dot').className = 'banner-dot';
-    document.getElementById('c-banner-title').className = 'banner-title';
-    document.getElementById('c-banner-title').textContent = song.title;
-    document.getElementById('c-banner-artist').textContent = song.artist;
-
-    let pill = banner.querySelector('.match-pill');
+    document.getElementById('banner-dot').className = 'banner-dot';
+    document.getElementById('banner-song').className = 'banner-song';
+    document.getElementById('banner-song').textContent = song.title;
+    document.getElementById('banner-artist').textContent = song.artist || '';
+    var pill = banner.querySelector('.match-pill');
     if (!pill) { pill = document.createElement('div'); banner.appendChild(pill); }
     pill.className = 'match-pill ' + (isMatch ? 'hit' : 'miss');
     pill.textContent = isMatch ? 'On your card!' : 'Not on your card';
   }
 
-  if (isMatch && !marked.has(idx)) {
-    const cell = document.getElementById('cell-' + idx);
+  if (isMatch && !marked[idx]) {
+    var cell = document.getElementById('cell-' + idx);
     if (cell) cell.classList.add('called');
-
-    // Auto-mark after 5 seconds
-    autoMarkTimers[idx] = setTimeout(() => {
-      if (!marked.has(idx)) {
-        const c = document.getElementById('cell-' + idx);
-        if (c) c.classList.remove('called');
-        markCell(idx);
-        updateProgress();
-        checkWin();
-      }
-      delete autoMarkTimers[idx];
-    }, 5000);
+    autoMarkTimers[idx] = setTimeout(function(cellIdx) {
+      return function() {
+        if (!marked[cellIdx]) {
+          var c = document.getElementById('cell-' + cellIdx);
+          if (c) c.classList.remove('called');
+          markCell(cellIdx);
+          updateProgress();
+          checkWin();
+        }
+        delete autoMarkTimers[cellIdx];
+      };
+    }(idx), 5000);
   }
 }
 
-// ── Progress and win detection ────────────────────────────────────────────────
-function updateProgress() {
-  document.getElementById('c-progress').textContent = (marked.size - 1) + ' / 24 matched';
-}
-
+// ── Win detection ─────────────────────────────────────────────────────────────
 function checkWin() {
-  const completed = LINES.filter(l => l.every(i => marked.has(i)));
-  const btn = document.getElementById('c-bingo-btn');
-  const isFullCard = marked.size >= 25;
-  const numCompleted = completed.length;
+  var completed = [];
+  for (var l = 0; l < LINES.length; l++) {
+    var line = LINES[l];
+    var complete = true;
+    for (var j = 0; j < line.length; j++) {
+      if (!marked[line[j]]) { complete = false; break; }
+    }
+    if (complete) completed.push(line);
+  }
 
-  // Full card — clear everything and turn all won-line cells red
+  var totalMarked = Object.keys(marked).length;
+  var isFullCard = totalMarked >= 25;
+  var btn = document.getElementById('bingo-btn');
+
+  // Clear win highlights
+  var cells = document.querySelectorAll('.cell');
+  for (var c = 0; c < cells.length; c++) {
+    cells[c].classList.remove('win-amber','win-green','win-red');
+  }
+
   if (isFullCard) {
     winState = 'full';
     btn.className = 'bingo-btn full';
     btn.textContent = 'Full card!';
-    document.querySelectorAll('.cell').forEach(c => {
-      c.classList.remove('win-amber','win-green','win-red');
-    });
-    completed.forEach(l => l.forEach(i => {
-      const el = document.getElementById('cell-'+i);
-      if (el) el.classList.add('win-red');
-    }));
-
-  // Exactly two lines just achieved — lock in green on those two lines only
-  } else if (numCompleted >= 2 && winState !== 'two') {
+    for (var l = 0; l < completed.length; l++) {
+      for (var j = 0; j < completed[l].length; j++) {
+        var el = document.getElementById('cell-' + completed[l][j]);
+        if (el) el.classList.add('win-red');
+      }
+    }
+  } else if (completed.length >= 2 && winState !== 'two') {
     winState = 'two';
     btn.className = 'bingo-btn two';
     btn.textContent = 'Two lines!';
-    // Clear amber from single line state first
-    document.querySelectorAll('.cell').forEach(c => {
-      c.classList.remove('win-amber','win-green');
-    });
-    // Highlight the first two completed lines green and freeze them
-    const twoLines = completed.slice(0, 2);
-    twoLines.forEach(l => l.forEach(i => {
-      const el = document.getElementById('cell-'+i);
-      if (el) el.classList.add('win-green');
-    }));
-    // Store which lines are locked green so we can restore if needed
-    lockedGreenLines = twoLines;
-
-  // Already at two-line win — restore green on locked lines, ignore new lines
-  } else if (numCompleted >= 2 && winState === 'two') {
+    lockedGreenLines = completed.slice(0, 2);
+    for (var l = 0; l < lockedGreenLines.length; l++) {
+      for (var j = 0; j < lockedGreenLines[l].length; j++) {
+        var el = document.getElementById('cell-' + lockedGreenLines[l][j]);
+        if (el) el.classList.add('win-green');
+      }
+    }
+  } else if (completed.length >= 2 && winState === 'two') {
     btn.className = 'bingo-btn two';
     btn.textContent = 'Two lines!';
-    // Ensure the locked green lines stay green (marking new cells clears them)
-    document.querySelectorAll('.cell').forEach(c => c.classList.remove('win-green'));
-    if (lockedGreenLines.length) {
-      lockedGreenLines.forEach(l => l.forEach(i => {
-        const el = document.getElementById('cell-'+i);
+    for (var l = 0; l < lockedGreenLines.length; l++) {
+      for (var j = 0; j < lockedGreenLines[l].length; j++) {
+        var el = document.getElementById('cell-' + lockedGreenLines[l][j]);
         if (el) el.classList.add('win-green');
-      }));
+      }
     }
-
-  // Exactly one line — amber
-  } else if (numCompleted === 1) {
+  } else if (completed.length === 1) {
     winState = 'line';
     btn.className = 'bingo-btn line';
     btn.textContent = 'Line!';
-    document.querySelectorAll('.cell').forEach(c => c.classList.remove('win-amber'));
-    completed[0].forEach(i => {
-      const el = document.getElementById('cell-'+i);
+    for (var j = 0; j < completed[0].length; j++) {
+      var el = document.getElementById('cell-' + completed[0][j]);
       if (el) el.classList.add('win-amber');
-    });
-
-  // No lines yet
+    }
   } else {
     winState = 'none';
     btn.className = 'bingo-btn';
     btn.textContent = 'Bingo!';
-    document.querySelectorAll('.cell').forEach(c => {
-      c.classList.remove('win-amber','win-green','win-red');
-    });
   }
 }
 
 // ── Claim bingo ───────────────────────────────────────────────────────────────
 function claimBingo() {
   if (winState === 'none') return;
-  const labels = { line:'Line', two:'Two lines', full:'Full card' };
-  const badge = document.getElementById('win-badge');
-  badge.textContent = labels[winState];
-  badge.className = 'win-type-badge ' + winState;
-  document.getElementById('win-title').textContent = 'Bingo!';
+  var labels = { line:'Line', two:'Two lines', full:'Full card' };
+  var badge = document.getElementById('win-badge');
+  badge.textContent = labels[winState] || winState;
+  badge.className = 'win-badge ' + winState;
   document.getElementById('win-sub').textContent = 'Waiting for host to verify...';
-  document.getElementById('s-win').classList.add('show');
-
-  socket.emit('player:bingo_claim', {
-    venueCode,
-    cardNumber,
-    claimType: winState,
-    markedSquares: [...marked]
-  });
+  document.getElementById('win-overlay').classList.add('show');
+  if (socket) {
+    var squares = Object.keys(marked).map(Number);
+    socket.emit('player:bingo_claim', { venueCode: venueCode, cardNumber: cardNumber, claimType: winState, markedSquares: squares });
+  }
 }
 
-// ── Socket connection ─────────────────────────────────────────────────────────
+// ── Socket ────────────────────────────────────────────────────────────────────
 function connectSocket() {
   socket = io();
+  socket.emit('player:join', { venueCode: venueCode, cardNumber: cardNumber });
 
-  socket.emit('player:join', { venueCode, cardNumber });
-
-  socket.on('session:song_called', ({ song }) => {
-    applySong(song, true);
+  socket.on('session:song_called', function(data) {
+    applySong(data.song, true);
   });
 
-  socket.on('bingo:confirmed', () => {
-    document.getElementById('win-title').textContent = 'Winner!';
+  socket.on('bingo:confirmed', function() {
     document.getElementById('win-sub').textContent = 'Host confirmed your win!';
-    document.getElementById('s-win').style.background = 'rgba(10,40,10,0.97)';
+    document.getElementById('win-overlay').style.background = 'rgba(10,40,10,0.97)';
   });
 
-  socket.on('bingo:rejected', ({ reason }) => {
-    document.getElementById('s-win').classList.remove('show');
-    // Could show a toast here
-    console.log('Bingo rejected:', reason);
+  socket.on('bingo:rejected', function(data) {
+    document.getElementById('win-overlay').classList.remove('show');
   });
 
-  socket.on('bingo:pending', ({ message }) => {
-    document.getElementById('win-sub').textContent = message;
-  });
-
-  socket.on('session:ended', () => {
-    document.getElementById('win-title').textContent = 'Round over!';
-    document.getElementById('win-sub').textContent = 'Thanks for playing. See you next round!';
-    document.getElementById('s-win').classList.add('show');
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Disconnected from server — will reconnect automatically');
+  socket.on('session:ended', function() {
+    document.getElementById('win-sub').textContent = 'Round over! Thanks for playing.';
+    document.getElementById('win-overlay').classList.add('show');
   });
 }
+
 </script>
 </body>
 </html>
