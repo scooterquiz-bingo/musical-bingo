@@ -256,23 +256,35 @@ async function joinGame() {
 
     cardSongs = data.songs;
     winConditions = data.winConditions || ['line','twolines','full'];
-    document.getElementById('c-title').textContent = data.themeName + ' · Set ' + data.setLetter;
-    document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + data.round;
 
-    buildGrid();
+    try {
+      document.getElementById('c-title').textContent = (data.themeName || 'Bingo') + ' · Set ' + (data.setLetter || 'A');
+      document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + (data.round || 1);
+    } catch(e2) { console.log('Header error:', e2); }
 
-    if (data.songsCalled && data.songsCalled.length > 0) {
-      data.songsCalled.forEach(song => applySong(song, false));
+    try {
+      buildGrid();
+    } catch(e2) {
+      console.log('buildGrid error:', e2);
+      errEl.style.color = '#c0392b';
+      errEl.textContent = 'Grid error: ' + e2.message;
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('s-join').classList.add('active');
+      return;
     }
 
-    connectSocket();
+    if (data.songsCalled && data.songsCalled.length > 0) {
+      data.songsCalled.forEach(song => { try { applySong(song, false); } catch(e2) {} });
+    }
+
+    try { connectSocket(); } catch(e2) { console.log('Socket error:', e2); }
 
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('s-card').classList.add('active');
 
   } catch(e) {
     errEl.style.color = '#c0392b';
-    errEl.textContent = 'Connection error: ' + e.message;
+    errEl.textContent = 'Error: ' + e.message;
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('s-join').classList.add('active');
   }
@@ -282,15 +294,22 @@ async function joinGame() {
 function buildGrid() {
   const grid = document.getElementById('c-grid');
   grid.innerHTML = '';
+  marked = new Set([12]);
+  lockedGreenLines = [];
+  winState = 'none';
+
   cardSongs.forEach((song, i) => {
     const cell = document.createElement('div');
-    cell.className = 'cell' + (i === 12 ? ' free' : '');
+    const isFree = (i === 12 || song === null);
+    cell.className = 'cell' + (isFree ? ' free' : '');
     cell.id = 'cell-' + i;
     cell.onclick = () => tapCell(i);
-    if (i === 12) {
-      cell.innerHTML = '<span style="font-size:14px;color:rgba(255,255,255,0.3);">★</span><span class="cell-title" style="margin-top:3px;font-size:10px;color:rgba(255,255,255,0.3);">Free</span>';
+    if (isFree) {
+      cell.innerHTML = '<span style="font-size:16px;color:#534AB7;">★</span><span class="cell-title" style="margin-top:3px;font-size:10px;color:#534AB7;">Free</span>';
     } else {
-      cell.innerHTML = `<span class="check">✓</span><span class="cell-title">${song.title}</span><span class="cell-artist">${song.artist}</span>`;
+      const title = song.title || '';
+      const artist = song.artist || '';
+      cell.innerHTML = `<span class="check">✓</span><span class="cell-title">${title}</span><span class="cell-artist">${artist}</span>`;
     }
     grid.appendChild(cell);
   });
