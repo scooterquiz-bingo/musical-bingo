@@ -236,21 +236,37 @@ async function joinGame() {
   cardNumber = num;
   errEl.textContent = '';
 
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-connecting').classList.add('active');
+  // Show debug while connecting — stays visible on join screen
+  errEl.style.color = '#888';
+  errEl.textContent = 'Sending request to server...';
 
   try {
-    const res = await fetch('/api/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ venueCode, cardNumber })
-    });
-    const data = await res.json();
+    let res, data;
+
+    try {
+      res = await fetch('/api/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venueCode, cardNumber })
+      });
+      errEl.textContent = 'Server replied: ' + res.status;
+    } catch(fetchErr) {
+      errEl.style.color = '#c0392b';
+      errEl.textContent = 'Network error: ' + fetchErr.message;
+      return;
+    }
+
+    try {
+      data = await res.json();
+    } catch(parseErr) {
+      errEl.style.color = '#c0392b';
+      errEl.textContent = 'Bad response from server: ' + parseErr.message;
+      return;
+    }
+
     if (!res.ok) {
       errEl.style.color = '#c0392b';
       errEl.textContent = data.error || 'Could not join. Check your venue code and card number.';
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById('s-join').classList.add('active');
       return;
     }
 
