@@ -219,92 +219,68 @@ async function joinGame() {
   const num = parseInt(cardRaw) || 0;
 
   errEl.style.color = '#888';
-  errEl.textContent = 'Tap received. Code: ' + codeRaw + ' Card: ' + num;
+  errEl.textContent = 'Step 1: validating...';
 
-  if (codeRaw.length < 3) {
-    errEl.style.color = '#c0392b';
-    errEl.textContent = 'Please enter the venue code.';
-    return;
-  }
-  if (num < 1 || num > 140) {
-    errEl.style.color = '#c0392b';
-    errEl.textContent = 'Please enter your card number (1 to 140).';
-    return;
-  }
+  if (codeRaw.length < 3) { errEl.style.color='#c0392b'; errEl.textContent='Enter venue code.'; return; }
+  if (num < 1 || num > 140) { errEl.style.color='#c0392b'; errEl.textContent='Enter card number 1-140.'; return; }
 
   venueCode = codeRaw;
   cardNumber = num;
-  errEl.textContent = '';
+  errEl.textContent = 'Step 2: contacting server...';
 
-  // Show debug while connecting — stays visible on join screen
-  errEl.style.color = '#888';
-  errEl.textContent = 'Sending request to server...';
-
+  let res;
   try {
-    let res, data;
-
-    try {
-      res = await fetch('/api/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venueCode, cardNumber })
-      });
-      errEl.textContent = 'Server replied: ' + res.status;
-    } catch(fetchErr) {
-      errEl.style.color = '#c0392b';
-      errEl.textContent = 'Network error: ' + fetchErr.message;
-      return;
-    }
-
-    try {
-      data = await res.json();
-    } catch(parseErr) {
-      errEl.style.color = '#c0392b';
-      errEl.textContent = 'Bad response from server: ' + parseErr.message;
-      return;
-    }
-
-    if (!res.ok) {
-      errEl.style.color = '#c0392b';
-      errEl.textContent = data.error || 'Could not join. Check your venue code and card number.';
-      return;
-    }
-
-    cardSongs = data.songs;
-    winConditions = data.winConditions || ['line','twolines','full'];
-
-    try {
-      document.getElementById('c-title').textContent = (data.themeName || 'Bingo') + ' · Set ' + (data.setLetter || 'A');
-      document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + (data.round || 1);
-    } catch(e2) { console.log('Header error:', e2); }
-
-    try {
-      buildGrid();
-    } catch(e2) {
-      console.log('buildGrid error:', e2);
-      errEl.style.color = '#c0392b';
-      errEl.textContent = 'Grid error: ' + e2.message;
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById('s-join').classList.add('active');
-      return;
-    }
-
-    if (data.songsCalled && data.songsCalled.length > 0) {
-      data.songsCalled.forEach(song => { try { applySong(song, false); } catch(e2) {} });
-    }
-
-    try { connectSocket(); } catch(e2) { console.log('Socket error:', e2); }
-
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('s-card').classList.add('active');
-
+    res = await fetch('/api/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ venueCode, cardNumber })
+    });
   } catch(e) {
     errEl.style.color = '#c0392b';
-    errEl.textContent = 'Error: ' + e.message;
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('s-join').classList.add('active');
+    errEl.textContent = 'Network error: ' + e.message;
+    return;
   }
+
+  errEl.textContent = 'Step 3: reading response (' + res.status + ')...';
+
+  let data;
+  try {
+    data = await res.json();
+  } catch(e) {
+    errEl.style.color = '#c0392b';
+    errEl.textContent = 'Bad server response: ' + e.message;
+    return;
+  }
+
+  if (!res.ok) {
+    errEl.style.color = '#c0392b';
+    errEl.textContent = data.error || 'Join failed.';
+    return;
+  }
+
+  errEl.textContent = 'Step 4: building card...';
+
+  cardSongs = data.songs;
+  winConditions = data.winConditions || ['line','twolines','full'];
+
+  document.getElementById('c-title').textContent = (data.themeName||'Bingo') + ' · Set ' + (data.setLetter||'A');
+  document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + (data.round||1);
+
+  errEl.textContent = 'Step 5: rendering grid...';
+  buildGrid();
+
+  errEl.textContent = 'Step 6: connecting socket...';
+  connectSocket();
+
+  if (data.songsCalled && data.songsCalled.length > 0) {
+    data.songsCalled.forEach(song => { try { applySong(song, false); } catch(e) {} });
+  }
+
+  errEl.textContent = 'Step 7: showing card...';
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-card').classList.add('active');
 }
+
 
 // ── Build the 5x5 grid ────────────────────────────────────────────────────────
 function buildGrid() {
