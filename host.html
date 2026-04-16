@@ -200,7 +200,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <div class="btn-row" style="margin-bottom:10px;">
       <button class="big-btn primary" id="listen-btn" onclick="toggleListen()">Start listening</button>
-      <button class="big-btn ghost" onclick="endRound()">End round</button>
+      <button class="big-btn ghost" id="pause-btn" onclick="togglePause()" style="display:none;">Pause</button>
+    </div>
+    <button class="big-btn ghost" onclick="endRound()" style="margin-bottom:10px;">End round</button>
+
+    <div id="progress-alert" style="display:none;margin-bottom:10px;background:rgba(24,95,165,0.15);border:1px solid rgba(56,138,221,0.4);border-radius:12px;padding:12px 14px;">
+      <div style="font-size:10px;color:#85B7EB;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Progress alert — not yet a win</div>
+      <div style="font-size:14px;font-weight:600;" id="progress-alert-text">Sarah — Line (needs two lines to win)</div>
     </div>
 
     <div class="bingo-alert" id="bingo-alert">
@@ -211,6 +217,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="big-btn danger" onclick="resolveBingo(false)">Reject</button>
       </div>
     </div>
+
+    <div id="winners-board" style="display:none;margin-top:16px;background:rgba(57,125,17,0.15);border:1px solid rgba(97,153,34,0.4);border-radius:12px;padding:14px;">
+      <div style="font-size:11px;color:#97C459;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Winners this round</div>
+      <div id="winners-list"></div>
+    </div>
   </div>
 </div>
 
@@ -220,6 +231,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 let socket, venueCode='', selTheme='', selSet='A', selRound=1;
 let listening=false, listenTimer=null, countTimer=null, countdown=0;
 let playerCount=0, songCount=0, claimCount=0;
+let winners=[];
+let paused=false;
 let pendingClaim=null;
 const calledSongs=[];
 
@@ -232,11 +245,11 @@ const ACR_ACCESS_SECRET = 'YOUR_ACCESS_SECRET_HERE';
 function connectSocket() {
   socket = io();
 
-  socket.on('session:player_joined', ({ cardNumber, count }) => {
+  socket.on('session:player_joined', ({ cardNumber, playerName, count }) => {
     playerCount = count;
     document.getElementById('stat-players').textContent = count;
     document.getElementById('g-players').textContent = count;
-    addRegItem(cardNumber);
+    addRegItem(cardNumber, playerName);
     const startBtn = document.getElementById('start-btn');
     startBtn.disabled = false;
   });
@@ -247,13 +260,27 @@ function connectSocket() {
     document.getElementById('g-players').textContent = count;
   });
 
-  socket.on('bingo:claim_received', ({ cardNumber, claimType, socketId, completedLines }) => {
-    pendingClaim = { cardNumber, socketId };
-    claimCount++;
-    document.getElementById('g-claims').textContent = claimCount;
+  socket.on('bingo:claim_received', ({ cardNumber, claimType, socketId, completedLines, playerName, isWin }) => {
     const labels = { line:'Line', twolines:'Two lines', full:'Full card' };
-    document.getElementById('bingo-alert-text').textContent = `Card ${cardNumber} — ${labels[claimType] || claimType}`;
+    const pName = playerName || ('Card ' + cardNumber);
+
+    if (!isWin) {
+      // Progress alert — show info banner, no host action needed
+      const needsMore = claimType === 'line' ? 'needs two lines to win' : 'needs full card to win';
+      document.getElementById('progress-alert-text').textContent = `${pName} — ${labels[claimType]} (${needsMore})`;
+      document.getElementById('progress-alert').style.display = 'block';
+      setTimeout(() => { document.getElementById('progress-alert').style.display = 'none'; }, 5000);
+      return;
+    }
+
+    // Real win claim — stop accepting if already 7 winners
+    if (winners.length >= 7) return;
+    pendingClaim = { cardNumber, socketId, playerName: pName, claimType };
+    document.getElementById('bingo-alert-text').textContent = `${pName} — ${labels[claimType] || claimType}`;
     document.getElementById('bingo-alert').style.display = 'block';
+
+    // Auto-pause detection when a win claim comes in
+    if (listening) togglePause();
   });
 }
 
@@ -348,14 +375,15 @@ async function openRegistration() {
   }
 }
 
-function addRegItem(cardNumber) {
+function addRegItem(cardNumber, playerName) {
   const feed = document.getElementById('reg-feed');
   if (feed.querySelector('.feed-empty')) feed.innerHTML = '';
   const now = new Date();
   const time = now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
   const item = document.createElement('div');
   item.className = 'feed-item';
-  item.innerHTML = `<span class="card-num">Card ${cardNumber}</span><span class="time">${time}</span>`;
+  const name = playerName || 'Player';
+  item.innerHTML = `<span class="card-num">${name}</span><span style="font-size:11px;color:rgba(255,255,255,0.4);">Card ${cardNumber} · ${time}</span>`;
   feed.insertBefore(item, feed.firstChild);
 }
 
@@ -377,15 +405,45 @@ function toggleListen() {
 
 function startListening() {
   listening = true;
+  paused = false;
   document.getElementById('listen-btn').textContent = 'Stop listening';
   document.getElementById('listen-btn').style.background = 'rgba(163,45,45,0.5)';
   document.getElementById('game-status-badge').textContent = 'Listening';
   document.getElementById('game-status-badge').style.background = 'rgba(57,125,17,0.3)';
+  document.getElementById('pause-btn').style.display = 'block';
   scheduleDetection();
+}
+
+function togglePause() {
+  const btn = document.getElementById('pause-btn');
+  if (!paused) {
+    // Pause — stop the countdown and detection timer
+    paused = true;
+    clearTimeout(listenTimer);
+    clearInterval(countTimer);
+    btn.textContent = 'Resume';
+    btn.style.background = 'rgba(57,125,17,0.3)';
+    btn.style.color = '#97C459';
+    btn.style.borderColor = 'rgba(97,153,34,0.4)';
+    document.getElementById('acr-dot').className = 'acr-indicator';
+    document.getElementById('acr-song').textContent = 'Game paused';
+    document.getElementById('acr-artist').textContent = 'Tap Resume to continue';
+    document.getElementById('acr-timer').textContent = '';
+    document.getElementById('game-status-badge').textContent = 'Paused';
+  } else {
+    // Resume
+    paused = false;
+    btn.textContent = 'Pause';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    scheduleDetection();
+  }
 }
 
 function stopListening() {
   listening = false;
+  paused = false;
   clearTimeout(listenTimer);
   clearInterval(countTimer);
   document.getElementById('listen-btn').textContent = 'Start listening';
@@ -396,11 +454,17 @@ function stopListening() {
   document.getElementById('acr-timer').textContent = '';
   document.getElementById('game-status-badge').textContent = 'Paused';
   document.getElementById('game-status-badge').style.background = '';
+  document.getElementById('pause-btn').style.display = 'none';
+  const pauseBtn = document.getElementById('pause-btn');
+  pauseBtn.textContent = 'Pause';
+  pauseBtn.style.background = '';
+  pauseBtn.style.color = '';
+  pauseBtn.style.borderColor = '';
 }
 
 function scheduleDetection() {
-  if (!listening) return;
-  const wait = 8000; // 8 seconds between attempts — adjust as needed
+  if (!listening || paused) return;
+  const wait = 30000; // 30 seconds between detection attempts
   countdown = Math.round(wait / 1000);
   document.getElementById('acr-dot').className = 'acr-indicator listening';
   document.getElementById('acr-song').textContent = 'Listening for music...';
@@ -418,8 +482,9 @@ async function captureAndIdentify() {
   clearInterval(countTimer);
   document.getElementById('acr-dot').className = 'acr-indicator detecting';
   document.getElementById('acr-song').textContent = 'Identifying song...';
-  document.getElementById('acr-artist').textContent = 'Matching audio fingerprint';
+  document.getElementById('acr-artist').textContent = 'Listening for up to 15 seconds...';
   document.getElementById('acr-timer').textContent = '';
+  // ACRCloud will listen for up to 15 seconds before returning a result
 
   // NOTE: Real ACRCloud integration requires their JavaScript SDK.
   // Sign up free at acrcloud.com, get your credentials, then:
@@ -562,10 +627,37 @@ function resolveBingo(confirmed) {
     venueCode,
     targetSocketId: pendingClaim.socketId,
     confirmed,
-    cardNumber: pendingClaim.cardNumber
+    cardNumber: pendingClaim.cardNumber,
+    playerName: pendingClaim.playerName,
+    claimType: pendingClaim.claimType
   });
+
+  if (confirmed) {
+    // Add to winners board — game keeps going
+    winners.push({ name: pendingClaim.playerName, card: pendingClaim.cardNumber, type: pendingClaim.claimType });
+    updateWinnersBoard();
+    claimCount++;
+    document.getElementById('g-claims').textContent = claimCount;
+  }
+
   pendingClaim = null;
   document.getElementById('bingo-alert').style.display = 'none';
+}
+
+function updateWinnersBoard() {
+  if (winners.length === 0) return;
+  const board = document.getElementById('winners-board');
+  const list = document.getElementById('winners-list');
+  const labels = { line:'Line', twolines:'Two lines', full:'Full card' };
+  board.style.display = 'block';
+  list.innerHTML = winners.map((w, i) =>
+    `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-top:${i>0?'1px solid rgba(255,255,255,0.08)':'none'};">
+      <span style="font-size:13px;font-weight:600;color:#97C459;">${i+1}.</span>
+      <span style="font-size:13px;font-weight:600;flex:1;">${w.name}</span>
+      <span style="font-size:11px;color:rgba(255,255,255,0.4);">Card ${w.card}</span>
+      <span style="font-size:11px;background:rgba(57,125,17,0.3);color:#97C459;padding:2px 8px;border-radius:10px;">${labels[w.type]||w.type}</span>
+    </div>`
+  ).join('');
 }
 
 // ── End round ─────────────────────────────────────────────────────────────────
@@ -582,6 +674,11 @@ function endRound() {
   document.getElementById('songs-feed').innerHTML='<div class="feed-empty">No songs detected yet</div>';
   document.getElementById('start-btn').disabled=true;
   document.getElementById('bingo-alert').style.display='none';
+  document.getElementById('progress-alert').style.display='none';
+  document.getElementById('winners-board').style.display='none';
+  document.getElementById('winners-list').innerHTML='';
+  paused=false;
+  document.getElementById('pause-btn').style.display='none';
   selRound = Math.min(selRound+1, 3);
   document.querySelectorAll('.round-btn').forEach(b => {
     b.classList.remove('selected');
