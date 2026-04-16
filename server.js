@@ -11,6 +11,7 @@ app.use(express.json());
 
 // Serve HTML files directly from root — no subfolder needed
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/bookmarklet', (req, res) => res.sendFile(path.join(__dirname, 'bookmarklet.html')));
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
 app.get('/host.html', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
 app.get('/player', (req, res) => res.sendFile(path.join(__dirname, 'player.html')));
@@ -76,6 +77,42 @@ app.post('/api/join', (req, res) => {
     winConditions: session.winConditions,
     songsCalled: session.songsCalled
   });
+});
+
+// ── Song played API (called by bookmarklet from hitthathit page) ─────────────
+app.post('/api/song-played', (req, res) => {
+  const { venueCode, song } = req.body;
+  const code = (venueCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const session = activeSessions[code];
+
+  if (!session) {
+    return res.json({ success: false, error: 'No active session for ' + code });
+  }
+  if (!song || !song.title) {
+    return res.json({ success: false, error: 'No song data' });
+  }
+
+  // Avoid duplicate broadcasts
+  if (session.songsCalled.find(s => s.title === song.title)) {
+    return res.json({ success: true, matched: false, duplicate: true });
+  }
+
+  session.songsCalled.push(song);
+
+  // Broadcast to all players
+  io.to('session:' + code).emit('session:song_called', {
+    song,
+    totalCalled: session.songsCalled.length
+  });
+
+  // Also notify host
+  io.to('host:' + code).emit('session:song_called', {
+    song,
+    totalCalled: session.songsCalled.length
+  });
+
+  console.log(`Bookmarklet song in ${code}: ${song.title} – ${song.artist}`);
+  res.json({ success: true, matched: true, totalCalled: session.songsCalled.length });
 });
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
