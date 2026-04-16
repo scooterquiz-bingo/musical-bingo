@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Musical Bingo — Bookmarklet Setup</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 24px 20px; max-width: 640px; margin: 0 auto; }
+h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+.sub { font-size: 14px; color: #888; margin-bottom: 28px; }
+.step { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+.step-num { font-size: 11px; font-weight: 700; color: #534AB7; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.step-title { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; }
+.step-body { font-size: 13px; color: #555; line-height: 1.6; }
+.code-box { background: #1a1a2e; border-radius: 10px; padding: 14px 16px; margin: 10px 0; font-family: monospace; font-size: 12px; color: #AFA9EC; word-break: break-all; line-height: 1.6; user-select: all; }
+.bookmarklet-link {
+  display: block; text-align: center;
+  background: #534AB7; color: #fff;
+  padding: 16px; border-radius: 12px;
+  font-size: 16px; font-weight: 700;
+  text-decoration: none; margin: 10px 0;
+  cursor: grab;
+}
+.bookmarklet-link:active { opacity: 0.85; }
+.note { background: #EEEDFE; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #3C3489; margin-top: 6px; line-height: 1.5; }
+.warning { background: #FAEEDA; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #633806; margin-top: 10px; line-height: 1.5; }
+.status-box { background: #EAF3DE; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #27500A; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1>Musical Bingo — Song Detection Setup</h1>
+<p class="sub">One-time setup. After this, song detection is fully automatic.</p>
+
+<div class="step">
+  <div class="step-num">Step 1</div>
+  <div class="step-title">Enter your bingo server URL</div>
+  <div class="step-body">
+    <input id="server-url" type="text" value="https://musical-bingo-production.up.railway.app"
+      style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin:8px 0;"
+      oninput="updateBookmarklet()"/>
+    <input id="venue-code" type="text" placeholder="Tonight's venue code e.g. SAPPHIRE"
+      style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin:4px 0;text-transform:uppercase;"
+      oninput="this.value=this.value.toUpperCase(); updateBookmarklet()"/>
+    <div class="note">Enter the same venue code you set on the host dashboard tonight.</div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">Step 2</div>
+  <div class="step-title">Save this as a bookmark</div>
+  <div class="step-body">
+    <p style="margin-bottom:10px;">On a computer — drag this button to your bookmarks bar:</p>
+    <a id="bookmarklet-btn" class="bookmarklet-link" href="#">🎵 Send to Musical Bingo</a>
+    <p style="margin:10px 0 6px;">On iPad Safari — copy the code below, create a new bookmark of any page, then edit it and paste this as the URL:</p>
+    <div class="code-box" id="code-display">Enter your venue code above first</div>
+    <button onclick="copyCode()" style="background:#534AB7;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;width:100%;">Copy bookmark code</button>
+    <div class="note" style="margin-top:10px;">The venue code is baked into the bookmark — update it each night by editing the bookmark URL and changing the code.</div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">Step 3</div>
+  <div class="step-title">How to use it on the night</div>
+  <div class="step-body" style="line-height:1.8;">
+    1. Open hitthathit.com and start your playlist as normal<br>
+    2. Open your Musical Bingo host dashboard in another tab<br>
+    3. Set up the session and open registration<br>
+    4. Tap your "Send to Musical Bingo" bookmark once<br>
+    5. A small status bar appears at the top of the hitthathit page<br>
+    6. It checks every 10 seconds — when the song changes it broadcasts automatically<br>
+    7. That's it — hands off for the rest of the night
+    <div class="warning">Make sure your host session is open before tapping the bookmark, otherwise songs will have nowhere to broadcast to.</div>
+  </div>
+</div>
+
+<script>
+function buildCode(serverUrl, venueCode) {
+  if (!venueCode || venueCode.length < 3) return null;
+  const server = (serverUrl || '').replace(/\/$/, '');
+
+  // The actual bookmarklet code
+  const code = `javascript:(function(){
+var SERVER='${server}';
+var CODE='${venueCode}';
+var last='';
+var bar=document.createElement('div');
+bar.id='mb_bar';
+bar.style='position:fixed;top:0;left:0;right:0;z-index:999999;background:#1a1a2e;color:#fff;font-family:sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;gap:10px;';
+bar.innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#639922;display:inline-block;animation:mb_pulse 1.2s infinite;flex-shrink:0;" id="mb_dot"></span><span id="mb_text">Musical Bingo — waiting for song...</span><style>@keyframes mb_pulse{0%,100%{opacity:1}50%{opacity:0.3}}</style>';
+document.body.appendChild(bar);
+document.body.style.paddingTop='36px';
+function getSong(){
+  var el=document.querySelector('.new-track.selected a.link,.new-track.pink.selected a.link');
+  if(!el) return null;
+  var raw=el.textContent.trim();
+  var m=raw.match(/^[A-Z]\s*[-–]\s*(.+?)\s*[-–]\s*(.+)$/);
+  if(!m) return null;
+  return {title:m[1].trim(),artist:m[2].trim()};
+}
+function send(song){
+  fetch(SERVER+'/api/song-played',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({venueCode:CODE,song:song})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    document.getElementById('mb_dot').style.background=d.success?'#639922':'#E24B4A';
+    document.getElementById('mb_text').textContent='Now playing: '+song.title+' – '+song.artist+(d.matched?' ✓':' (not on cards)');
+  }).catch(function(){
+    document.getElementById('mb_dot').style.background='#E24B4A';
+    document.getElementById('mb_text').textContent='Connection error — check your server';
+  });
+}
+function check(){
+  var s=getSong();
+  if(s&&s.title!==last){last=s.title;send(s);}
+}
+check();
+setInterval(check,10000);
+})();`.replace(/\n/g,'').replace(/  +/g,' ');
+
+  return code;
+}
+
+function updateBookmarklet() {
+  const server = document.getElementById('server-url').value.trim();
+  const code = document.getElementById('venue-code').value.trim();
+  const built = buildCode(server, code);
+  const btn = document.getElementById('bookmarklet-btn');
+  const display = document.getElementById('code-display');
+  if (built) {
+    btn.href = built;
+    display.textContent = built;
+  } else {
+    btn.href = '#';
+    display.textContent = 'Enter your venue code above first';
+  }
+}
+
+function copyCode() {
+  const text = document.getElementById('code-display').textContent;
+  if (text === 'Enter your venue code above first') return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    btn.style.background = '#3B6D11';
+    setTimeout(() => { btn.textContent = 'Copy bookmark code'; btn.style.background = '#534AB7'; }, 2000);
+  });
+}
+
+updateBookmarklet();
+</script>
+</body>
+</html>
