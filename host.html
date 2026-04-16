@@ -443,22 +443,88 @@ async function captureAndIdentify() {
 }
 
 function simulateDetection() {
-  // REMOVE THIS FUNCTION once ACRCloud is wired up
+  // REMOVE THIS FUNCTION once ACRCloud is wired up — replace with real detection
   const demos = [
+    {title:'You Might Think',artist:'Cars'},
+    {title:'When Doves Cry',artist:'Prince'},
     {title:'Sweet Dreams',artist:'Eurythmics'},
-    {title:'Take On Me',artist:'A-Ha'},
+    {title:'Maniac',artist:'Michael Sembello'},
+    {title:'Flashdance',artist:'Irena Cara'},
+    {title:"Don't Worry Be Happy",artist:'Bobby Mcferrin'},
+    {title:'Mickey',artist:'Toni Basil'},
+    {title:'Shout',artist:'Tears For Fears'},
+    {title:'The Power',artist:'Snap'},
+    {title:"We're Not Going To Take It",artist:'Twisted Sister'},
+    {title:'Cold As Ice',artist:'Foreigner'},
     {title:'99 Luft Balloons',artist:'Nena'},
-    {title:'Come On Eileen',artist:"Dexy's Midnight Runners"},
+    {title:'We Built This City',artist:'Starship'},
+    {title:'Heaven Is A Place On Earth',artist:'Belinda Carlyle'},
+    {title:'500 Miles',artist:'Proclaimers'},
     {title:'Like A Prayer',artist:'Madonna'},
-    {title:'Faith',artist:'George Michael'},
+    {title:'Fame',artist:'Irena Cara'},
+    {title:'Rock Lobster',artist:"The B-52's"},
+    {title:'Caribbean Queen',artist:'Billy Ocean'},
+    {title:'Lets Hear It For The Boy',artist:'Denice Williams'},
+    {title:'Blame It On The Rain',artist:'Milli Vanilli'},
+    {title:'Living On A Prayer',artist:'Bon Jovi'},
+    {title:"Why Can't This Be Love",artist:'Van Halen'},
+    {title:'Take On Me',artist:'A-Ha'},
+    {title:'Tarzan Boy',artist:'Baltimora'},
+    {title:'Jessies Girl',artist:'Rick Springfield'},
     {title:'Safety Dance',artist:'Men Without Hats'},
+    {title:'Ride On Time',artist:'Black Box'},
+    {title:'Hit Me With Your Best Shot',artist:'Pat Benatar'},
+    {title:"I've Had The Time Of My Life",artist:'Medley And Warnes'},
+    {title:'Faith',artist:'George Michael'},
+    {title:'Wake Me Up Before You Go Go',artist:'Wham'},
+    {title:"What's Love Got To Do With It",artist:'Tina Turner'},
+    {title:'I Need A Lover',artist:'John Cougar'},
+    {title:'Boys Of Summer',artist:'Don Henley'},
+    {title:'Fight For Your Right',artist:'Beastie Boys'},
+    {title:'Footloose',artist:'Kenny Loggins'},
+    {title:'Send Me An Angel',artist:'Real Life'},
+    {title:'Blister In The Sun',artist:'Violent Femmes'},
+    {title:'Pride In The Name Of Love',artist:'U2'},
+    {title:'The Final Countdown',artist:'Europe'},
+    {title:'Walk Like An Egyptian',artist:'Bangles'},
+    {title:'Karma Chameleon',artist:'Culture Club'},
+    {title:'Run Run Away',artist:'Slade'},
+    {title:'Sunglasses At Night',artist:'Corey Hart'},
+    {title:'Africa',artist:'Toto'},
+    {title:'Cruel Summer',artist:'Bananarama'},
+    {title:'Total Eclipse Of The Heart',artist:'Bonnie Tyler'},
+    {title:'Money For Nothing',artist:'Dire Straits'},
+    {title:"I Think We're Alone Now",artist:'Tiffany'},
     {title:'Video Killed The Radio Star',artist:'Buggles'},
+    {title:'Billie Jean',artist:'Michael Jackson'},
+    {title:'Tainted Love',artist:'Soft Cell'},
+    {title:'Manic Monday',artist:'Bangles'},
+    {title:'Jump',artist:'Van Halen'},
+    {title:'All Night Long',artist:'Lionel Richie'},
+    {title:'Summer Of 69',artist:'Brian Adams'},
+    {title:'Ghostbusters',artist:'Ray Parker Jr'},
+    {title:'The Look',artist:'Roxette'},
+    {title:'Pop Goes The World',artist:'Men Without Hats'},
+    {title:'I Ran',artist:'Flock Of Seagulls'},
+    {title:'Simply Irresistible',artist:'Robert Palmer'},
+    {title:'Rio',artist:'Duran Duran'},
+    {title:'Relax',artist:'Frankie Goes To Hollywood'},
+    {title:"Don't Stop Believing",artist:'Journey'},
+    {title:'Girls Just Want To Have Fun',artist:'Cyndi Lauper'},
+    {title:'Material Girl',artist:'Madonna'},
+    {title:'Kokomo',artist:'Beach Boys'},
+    {title:'Head Over Heels',artist:'Go-Gos'},
+    {title:'I Touch Myself',artist:'Divinyls'},
+    {title:'Working For The Weekend',artist:'Loverboy'},
+    {title:'Come On Eileen',artist:"Dexy's Midnight Runners"},
+    {title:'Who Can It Be Now',artist:'Men At Work'},
   ];
   const avail = demos.filter(s => !calledSongs.find(c => c.title === s.title));
   if (avail.length > 0) {
     onSongIdentified(avail[Math.floor(Math.random() * avail.length)]);
   } else {
-    onNoMatch();
+    // All demo songs exhausted — just keep looping quietly
+    scheduleDetection();
   }
 }
 
