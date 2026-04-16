@@ -122,6 +122,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <p>Enter your details to join tonight's game</p>
     </div>
     <div class="join-form">
+      <div class="field-label">Your name</div>
+      <input class="field-input" id="f-name" type="text" maxlength="30" placeholder="e.g. Sarah" autocomplete="given-name" autocapitalize="words"/>
       <div class="field-label">Venue code</div>
       <input class="field-input" id="f-code" type="text" maxlength="12" placeholder="e.g. SAPPHIRE" autocomplete="off"/>
       <div class="field-label">Your card number</div>
@@ -185,6 +187,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <script>
 
 // ── State ─────────────────────────────────────────────────────────────────────
+var playerName = '';
 var venueCode = '';
 var cardNumber = 0;
 var cardSongs = [];
@@ -218,12 +221,15 @@ function setMsg(text, isError) {
 function joinGame() {
   var codeEl = document.getElementById('f-code');
   var cardEl = document.getElementById('f-card');
+  var nameRaw = (document.getElementById('f-name').value || '').trim();
   var code = (codeEl.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   var num = parseInt((cardEl.value || '').replace(/[^0-9]/g, '')) || 0;
 
+  if (!nameRaw) { setMsg('Please enter your name.', true); return; }
   if (code.length < 3) { setMsg('Please enter the venue code.', true); return; }
   if (num < 1 || num > 140) { setMsg('Please enter your card number (1-140).', true); return; }
 
+  playerName = nameRaw;
   venueCode = code;
   cardNumber = num;
   setMsg('Joining...', false);
@@ -238,7 +244,7 @@ function joinGame() {
       cardSongs = data.songs;
       winConditions = data.winConditions || ['line','twolines','full'];
       document.getElementById('c-title').textContent = (data.themeName || 'Bingo') + ' · Set ' + (data.setLetter || 'A');
-      document.getElementById('c-sub').textContent = 'Card ' + cardNumber + ' · Round ' + (data.round || 1);
+      document.getElementById('c-sub').textContent = playerName + ' · Card ' + cardNumber + ' · Round ' + (data.round || 1);
       buildGrid();
       if (data.songsCalled && data.songsCalled.length) {
         for (var i = 0; i < data.songsCalled.length; i++) applySong(data.songsCalled[i], false);
@@ -259,7 +265,7 @@ function joinGame() {
     setMsg('Network error. Check your connection.', true);
     document.getElementById('join-btn').disabled = false;
   };
-  xhr.send(JSON.stringify({ venueCode: venueCode, cardNumber: cardNumber }));
+  xhr.send(JSON.stringify({ venueCode: venueCode, cardNumber: cardNumber, playerName: playerName }));
 }
 
 // ── Grid ──────────────────────────────────────────────────────────────────────
@@ -445,24 +451,65 @@ function claimBingo() {
 // ── Socket ────────────────────────────────────────────────────────────────────
 function connectSocket() {
   socket = io();
-  socket.emit('player:join', { venueCode: venueCode, cardNumber: cardNumber });
+  socket.emit('player:join', { venueCode: venueCode, cardNumber: cardNumber, playerName: playerName });
 
   socket.on('session:song_called', function(data) {
     applySong(data.song, true);
   });
 
-  socket.on('bingo:confirmed', function() {
-    document.getElementById('win-sub').textContent = 'Host confirmed your win!';
+  socket.on('bingo:confirmed', function(data) {
+    // Lock screen as winner — stays locked, game continues for others
+    var labels = { line:'Line', twolines:'Two lines', full:'Full card' };
+    var badge = document.getElementById('win-badge');
+    badge.textContent = labels[data.claimType] || 'Winner';
+    badge.className = 'win-badge ' + (data.claimType || 'line');
+    document.getElementById('win-sub').textContent = 'Congratulations! The game continues for other players.';
     document.getElementById('win-overlay').style.background = 'rgba(10,40,10,0.97)';
+    document.getElementById('win-overlay').classList.add('show');
+    // Winner screen stays — do NOT auto-dismiss
   });
 
   socket.on('bingo:rejected', function(data) {
     document.getElementById('win-overlay').classList.remove('show');
   });
 
+  socket.on('bingo:already_won', function(data) {
+    document.getElementById('win-overlay').classList.remove('show');
+  });
+
+  socket.on('bingo:progress', function(data) {
+    // Progress alert — player is on track but hasn't won yet
+    // Just dismiss the pending overlay if showing
+    document.getElementById('win-overlay').classList.remove('show');
+  });
+
+  socket.on('session:winner_announced', function(data) {
+    // Show brief winner announcement in the banner for other players
+    if (data.playerName !== playerName) {
+      var labels = { line:'Line', twolines:'Two lines', full:'Full card' };
+      var prevSong = document.getElementById('banner-song').textContent;
+      var prevArtist = document.getElementById('banner-artist').textContent;
+      var banner = document.getElementById('banner');
+      banner.className = 'song-banner';
+      document.getElementById('banner-dot').className = 'banner-dot';
+      document.getElementById('banner-song').className = 'banner-song';
+      document.getElementById('banner-song').textContent = data.playerName + ' — Winner!';
+      document.getElementById('banner-artist').textContent = (labels[data.claimType]||'Win') + ' · Winner ' + data.winnerNumber;
+      setTimeout(function() {
+        document.getElementById('banner-song').textContent = prevSong;
+        document.getElementById('banner-artist').textContent = prevArtist;
+      }, 4000);
+    }
+  });
+
   socket.on('session:ended', function() {
-    document.getElementById('win-sub').textContent = 'Round over! Thanks for playing.';
-    document.getElementById('win-overlay').classList.add('show');
+    var overlay = document.getElementById('win-overlay');
+    document.getElementById('win-title').textContent = 'Round over!';
+    document.getElementById('win-sub').textContent = 'Thanks for playing. See you next round!';
+    document.getElementById('win-badge').textContent = '';
+    document.getElementById('win-badge').className = 'win-badge';
+    overlay.style.background = 'rgba(10,10,25,0.97)';
+    overlay.classList.add('show');
   });
 }
 
