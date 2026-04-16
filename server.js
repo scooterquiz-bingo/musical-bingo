@@ -63,10 +63,12 @@ app.post('/api/join', (req, res) => {
   if (!songs) return res.status(404).json({ error: 'Card not found. Check your card number.' });
 
   const theme = themes.find(t => t.slug === session.themeSlug);
+  const playerName = (req.body.playerName || 'Player').trim().slice(0, 30);
 
   res.json({
     venueCode: code,
     cardNumber: parseInt(cardNumber),
+    playerName,
     songs,
     themeName: theme ? theme.name : session.themeSlug,
     setLetter: session.setLetter,
@@ -89,21 +91,23 @@ io.on('connection', (socket) => {
     console.log(`Host joined: ${code}`);
   });
 
-  socket.on('player:join', ({ venueCode, cardNumber }) => {
+  socket.on('player:join', ({ venueCode, cardNumber, playerName }) => {
     const code = venueCode.toUpperCase();
     socket.join('session:' + code);
     socket.venueCode = code;
     socket.cardNumber = cardNumber;
+    socket.playerName = playerName || 'Player';
     socket.role = 'player';
 
     const session = activeSessions[code];
     if (session) {
-      session.players[socket.id] = { cardNumber, socketId: socket.id };
+      // Multiple players can share the same card number — each gets their own socket entry
+      session.players[socket.id] = { cardNumber, playerName: socket.playerName, socketId: socket.id };
       const count = Object.keys(session.players).length;
       io.to('host:' + code).emit('session:player_count', { count });
-      io.to('host:' + code).emit('session:player_joined', { cardNumber, count });
+      io.to('host:' + code).emit('session:player_joined', { cardNumber, playerName: socket.playerName, count });
     }
-    console.log(`Player card ${cardNumber} joined: ${code}`);
+    console.log(`Player ${socket.playerName} (card ${cardNumber}) joined: ${code}`);
   });
 
   socket.on('host:start', ({ venueCode }) => {
@@ -133,6 +137,14 @@ io.on('connection', (socket) => {
     const session = activeSessions[code];
     if (!session) return;
 
+    // Allow up to 7 winners per round — check if this player already won
+    if (!session.winners) session.winners = [];
+    const alreadyWon = session.winners.find(w => w.socketId === socket.id);
+    if (alreadyWon) {
+      socket.emit('bingo:already_won', { message: 'You have already claimed a win this round!' });
+      return;
+    }
+
     const cardKey = `${session.themeSlug}|${session.setLetter}|${parseInt(cardNumber)}`;
     const songs = cards.get(cardKey);
     if (!songs) return;
@@ -154,31 +166,67 @@ io.on('connection', (socket) => {
     const completedLines = LINES.filter(line => line.every(i => markedSet.has(i)));
     const isFullCard = validMarks.length >= 25;
 
-    let verifiedType = null;
-    if (isFullCard && session.winConditions.includes('full')) verifiedType = 'full';
-    else if (completedLines.length >= 2 && session.winConditions.includes('twolines')) verifiedType = 'twolines';
-    else if (completedLines.length >= 1 && session.winConditions.includes('line')) verifiedType = 'line';
+    // Work out what the player has achieved
+    let achievedType = null;
+    if (isFullCard) achievedType = 'full';
+    else if (completedLines.length >= 2) achievedType = 'twolines';
+    else if (completedLines.length >= 1) achievedType = 'line';
 
-    if (!verifiedType) {
+    if (!achievedType) {
       socket.emit('bingo:rejected', { reason: 'Claim not verified — keep playing!' });
       return;
     }
 
+    // Check if this player has already won at this level or higher
+    if (!session.winners) session.winners = [];
+    const winLevels = { line: 1, twolines: 2, full: 3 };
+    const playerWins = session.winners.filter(w => w.socketId === socket.id);
+    const highestWin = playerWins.reduce((max, w) => Math.max(max, winLevels[w.claimType] || 0), 0);
+    const achievedLevel = winLevels[achievedType] || 0;
+
+    // Already won at this level — ignore
+    if (achievedLevel <= highestWin) {
+      socket.emit('bingo:already_won', { message: 'You have already claimed this win!' });
+      return;
+    }
+
+    // Is this a selected win condition (actual prize) or just a progress alert?
+    const isWin = session.winConditions.includes(achievedType);
+
+    // Always alert host — flag whether it's a prize win or progress info
     io.to('host:' + code).emit('bingo:claim_received', {
       cardNumber,
-      claimType: verifiedType,
+      playerName: socket.playerName || ('Card ' + cardNumber),
+      claimType: achievedType,
       socketId: socket.id,
-      completedLines
+      completedLines,
+      isWin  // true = real prize win, false = progress alert only
     });
-    socket.emit('bingo:pending', { message: 'Claim sent to host — waiting for confirmation...' });
-    console.log(`Bingo claim from card ${cardNumber} in ${code}: ${verifiedType}`);
+
+    if (isWin) {
+      socket.emit('bingo:pending', { message: 'Claim sent to host — waiting for confirmation...' });
+    } else {
+      // Progress alert — auto-acknowledge, no player action needed
+      socket.emit('bingo:progress', { claimType: achievedType, message: 'Keep going — you need more to win!' });
+    }
+    console.log(`${isWin ? 'WIN' : 'PROGRESS'} claim from ${socket.playerName} card ${cardNumber} in ${code}: ${achievedType}`);
   });
 
-  socket.on('host:bingo_resolve', ({ venueCode, targetSocketId, confirmed, cardNumber }) => {
+  socket.on('host:bingo_resolve', ({ venueCode, targetSocketId, confirmed, cardNumber, playerName, claimType }) => {
     const code = venueCode.toUpperCase();
+    const session = activeSessions[code];
     if (confirmed) {
-      io.to(targetSocketId).emit('bingo:confirmed', { cardNumber });
-      io.to('session:' + code).emit('session:winner', { cardNumber });
+      if (session) {
+        if (!session.winners) session.winners = [];
+        session.winners.push({ socketId: targetSocketId, cardNumber, playerName, claimType, time: Date.now() });
+        const winnerCount = session.winners.length;
+        console.log(`Winner ${winnerCount}: ${playerName} card ${cardNumber} (${claimType}) in ${code}`);
+        io.to('session:' + code).emit('session:winner_announced', {
+          playerName, cardNumber, claimType, winnerNumber: winnerCount
+        });
+      }
+      // Player screen locks as winner
+      io.to(targetSocketId).emit('bingo:confirmed', { cardNumber, playerName, claimType });
     } else {
       io.to(targetSocketId).emit('bingo:rejected', { reason: 'Not quite — keep playing!' });
     }
